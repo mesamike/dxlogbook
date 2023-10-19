@@ -1,0 +1,14 @@
+<MvOPEN NAME = "amstations" DATABASE = "dxlogbook/mikew/logs.dbf">
+<MvREVEALSTRUCTURE NAME = "amstations" DATABASE = "test/struct.dbf">
+
+<MvOPEN NAME = "struct" DATABASE = "test/struct.dbf">
+<MvWHILE EXPR = "{ NOT struct.d.EOF }">
+    <MvEVAL EXPR = "{ struct.d.field_name }">, 
+    <MvEVAL EXPR = "{ struct.d.field_type }">, 
+    <MvEVAL EXPR = "{ struct.d.field_len}">, 
+    <MvEVAL EXPR = "{ struct.d.field_dec }"><br>
+    <MvSKIP NAME = "struct" ROWS = 1>
+</MvWHILE>
+
+<MvCLOSE NAME = "struct">
+<MvCLOSE NAME = "amstations">

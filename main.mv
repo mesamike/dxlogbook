@@ -1,0 +1,223 @@
+<miva standardoutputlevel="">
+
+
+******************************************
+* Set base directory and master file names
+******************************************
+<mvdo file="common.mvc">
+
+
+********************************************************************
+* If our base directory doesn't exist, we must not be installed yet.
+********************************************************************
+<mvif expr="{not fexists(basedir)}">
+   <miva standardoutputlevel="text,html"><html><head><title>DX Logbook Not Installed</title></head>
+         <body><h1>DX Logbook Not Installed!</h1></body></html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvif>
+
+
+********************** 
+* Read the config file
+**********************
+<mvassign name="dummy" value="{read_config()}">
+
+<mvif expr="{action eq 'logadmin'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{log_admin()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'acctadmin'}">
+   <mvdo file="user.mvc" name="dummy" value="{user_admin()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'acctconfig'}">
+   <mvdo file="user.mvc" name="dummy" value="{user_config()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'logconfig'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{log_config()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'newlog'}">
+   <mvdo file="user.mvc" name="dummy" value="{new_log()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'deletelog'}">
+   <mvdo file="user.mvc" name="dummy" value="{delete_log()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{(action eq 'moveup') or (action eq 'movedown')}">
+   <mvdo file="user.mvc" name="dummy" value="{move_log()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'newentry'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{new_entry()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'editentry'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{new_entry()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'deleteentry'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{delete_entry()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'newpasswd'}">
+   <mvdo file="auth.mvc" name="dummy" value="{new_passwd()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{action eq 'retally'}">
+   <mvdo file="logbook.mvc" name="dummy" value="{retally()}">
+   <mvexit>
+</mvif>
+
+<mvif expr="{account}">
+   <mvassign name="userdir" value="{basedir$'/'$account}">
+   <mvassign name="logs_dbf" value="{userdir$'/logs.dbf'}">
+   <mvassign name="logs_idx" value="{userdir$'/logs.idx'}">
+   <mvassign name="page_cfg" value="{userdir$'/page.cfg'}">
+   <mvassign name="info_txt" value="{userdir$'/info.txt'}">
+   <mvif expr="{logbook}">
+      <mvdo file="logbook.mvc" name="dummy" value="{list_entries()}">
+   <mvelse>
+      <mvif expr="{not fexists(userdir)}">
+         <mveval expr="{put_main()}">
+      <mvelse>
+         <mveval expr="{put_user()}">
+      </mvif>
+   </mvif>
+<mvelse>
+   <mvassign name="dummy" value="{put_main()}">
+</mvif>
+<mvexit>
+
+
+<mvfunction name="put_main" standardoutputlevel="">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title>DX Logbook!</title>
+      </head>
+      <body bgcolor="#ffffaf" background="{g.bg_url}">
+         <center>
+            <mvassign name="dummy" value="{put_banner()}">
+            <hr>
+            [<a href="main.mvc?action=acctadmin">Log In</a>]<br>
+            <h1>Welcome to DX Logbook!</h1>
+            Please select one of the following logs for viewing:
+            <hr>
+            <mvopen  name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+            <mvgo name="accounts_db" row="top">
+            <table><tr><td>
+            <mvwhile expr="{not accounts_db.d.eof}">
+               <mvif expr="{accounts_db.d.state ne 'pending' and not accounts_db.d.deleted}">
+                  <li><a href="{'main.mvc?account='$accounts_db.d.user}">
+                    <mveval expr="{accounts_db.d.page_title}"></a><br>
+               </mvif>
+               <mvskip name="accounts_db">
+            </mvwhile>
+            </td></tr></table>
+            <mvclose name="accounts_db">
+            <br>
+            <hr>
+            <mvif expr="{allow_user_create}">
+               <a href="admin.mvc?action=newaccount&mode=user">
+                  Create your own logbook</a>
+            </mvif>
+         </center>
+      </body>
+   </html>
+   <miva standardoutputlevel="">
+ </mvfunction>
+
+
+
+<mvfunction name="put_user" standardoutputlevel="">
+   ******************************
+   * Read the account config info
+   ******************************
+   <mvdo file="user.mvc" name="dummy" value="{read_userconfig()}">
+   <mvdo file="user.mvc" name="dummy" value="{assign_userfiles()}">
+
+   ********************************
+   * display the account index page
+   ********************************
+   <mvopen name="logs_db" database="{logs_dbf}" indexes="{logorder_idx}">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title><mveval expr="{page_title}"></title>
+      </head>
+      <body bgcolor="#ffffaf" background="{g.bg_url}">
+         <center>
+            <mveval expr="{put_banner()}">
+            <hr>
+            [<a href="main.mvc">Main Index</a>]
+            [<a href="{'main.mvc?action=acctadmin&account='$account}">Log In</a>]
+            <mvif expr="{allow_user_create}">
+               [<a href="admin.mvc?action=newaccount&mode=user">New Account</a>]
+            </mvif>
+            <h1><mveval expr="{page_title}"></h1>
+            </center><mveval expr="{g.blurb}"><center>
+            <hr>
+            <table><tr><td>
+            <mvwhile expr="{not logs_db.d.eof}">
+               <b><li><a href="{'main.mvc?account='$account$'&logbook='$logs_db.d.log_id}">
+                    <mveval expr="{logs_db.d.logname}"></a><b>
+                    <mvif expr="{logs_db.d.subtitle}">
+                       - <mveval expr="{logs_db.d.subtitle}">
+                    </mvif>
+                    <br>
+               <mvskip name="logs_db" rows="1">
+            </mvwhile>
+            </td></tr></table>
+            <br>
+            <hr>
+         </center>
+      </body>
+   </html>
+   <miva standardoutputlevel="">
+   <mvclose name="logs_db">
+</mvfunction>
+
+**********************
+* Read the config file
+**********************
+<mvfunction name="read_config"  standardoutputlevel="">
+   <mvif expr="{fexists(configfile)}">
+      <mvimport file="{configfile}" fields="name, value" delimiter="=">
+         <mvassign name="{name}" value="{value}">
+      </mvimport>
+   </mvif>
+</mvfunction>
+
+********************************
+* Display the top-of-page banner
+********************************
+<mvfunction name="put_banner" standardoutputlevel="text,html">
+   <mvif expr="{g.banner_link}">
+      <a href="{g.banner_link}">
+         <mvif expr="{g.banner_url}">
+            <img src="{g.banner_url}" border="0">
+         <mvelse>
+            <mveval expr="{g.banner_link}">
+         </mvif>
+      </a>
+   <mvelse>
+      <mvif expr="{g.banner_url}">
+         <img src="{g.banner_url}">
+      </mvif>
+   </mvif>
+</mvfunction>

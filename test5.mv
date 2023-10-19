@@ -1,0 +1,13 @@
+<miva standardoutputlevel="">
+
+<MvOPEN NAME = "foo" 
+        DATABASE = "/dxlogbook/mikew/dxlog_35_tally.dbf">
+
+<MvWHILE EXPR = "{ NOT foo.d.EOF }">
+    <MvEVAL EXPR = "{foo.d.count$'|'}">
+    <MvEVAL EXPR = "{foo.d.country$'|'}">
+    <MvEVAL EXPR = "{foo.d.state$'<br>'}">
+    <MvSKIP NAME = "foo" ROWS = 1>
+</MvWHILE>
+
+<MvCLOSE NAME = "foo">

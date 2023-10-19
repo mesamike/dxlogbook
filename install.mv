@@ -1,0 +1,162 @@
+<miva standardoutputlevel="">
+
+
+*******************************
+* Set some commonly used macros
+*******************************
+#<mvassign name="OFF" value="<miva standardoutputlevel=\"\">">
+#<mvassign name="ON"  value="<miva standardoutputlevel=\"text,html\">">
+
+
+************************************************
+* Set variables common to all dx logbook scripts
+************************************************
+<mvdo file="common.mvc">
+
+
+<mvif expr="{fexists(basedir)}">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title>Error -- System already installed</title>
+      </head>
+      <body>
+         <h1>SYSTEM ALREADY INSTALLED</h1>
+         <a href="main.mvc">click here...</a>
+      </body>
+   </html>
+   <miva standardoutputlevel="">
+
+<mvelse>   
+   <mvif expr="{request_method ne 'POST'}">
+      <mveval expr="{put_install()}">
+   <mvelse>
+      <mveval expr="{get_install()}">
+   </mvif>
+</mvif>
+<mvexit>
+
+
+<mvfunction name="put_install">
+   ************************************************
+   * Send the installation info form to the browser
+   ************************************************
+   <mvassign name="action" value="install">
+   <miva standardoutputlevel="text,html">
+   <html><head><title>DX Logbook Installation</title></head>
+         <body bgcolor="#ffffaf">
+         <center>
+         <h1>Welcome to DX Logbook Installation!</h1></center>
+         <blockquote>
+         Fill out the form below to provide your user name and password.
+         Please make a note of these values.  
+         All admin functions require username and password.
+         <mvif expr="{install_error}">
+            <center><font color="red">ERROR: </font>
+            <mveval expr="{install_error}"><br>
+            Try again</center>
+         </mvif>
+         <form action="install.mvc" method="POST">
+         <mvhide fields="action">
+         <center>
+         <hr>
+         <table>
+            <tr>
+               <th>Username:</th>
+               <td><input name="username" type="text"></td>
+            </tr>
+            <tr>
+               <th>Password:</th>
+               <td><input name="passwd" type="password"></td>
+            </tr>
+            <tr>
+               <th>Password again:</th>
+               <td><input name="passwd2" type="password"></td>
+            </tr>
+         </table>
+         <hr>
+         <input type="submit" value="Submit" default>
+         </center>
+         </form>
+         </blockquote>
+         </body></html>
+   <miva standardoutputlevel="">
+</mvfunction>
+
+
+<mvfunction name="get_install">
+   *******************************************
+   * Process the installation form
+   *******************************************
+   <mvif expr="{not username or not passwd or not passwd2}">
+      <mvassign name="install_error" value="Blank field">
+   <mvelse><mvif expr="{passwd ne passwd2}">
+      <mvassign name="install_error" value="Passwords didn't match">
+   </mvif></mvif>
+   <mvif expr="{install_error}">
+      <mveval expr="{put_install()}">
+   <mvelse>
+      *********************************************
+      * admin information looks good,
+      * go ahead with the installation.
+      *********************************************
+      <mvif expr="{fmkdir(basedir)}">
+         <mvassign name="session_id" value="{makesessionid()}">
+         <mvassign name="expire_time" value="{time_t + 1800}">
+         <mvassign name="cryptpasswd" value="{passwd crypt substring(passwd,1,2)}">
+         <mvexport file = "{passwdfile}" 
+                   fields = "username, cryptpasswd" 
+                   delimiter = ":">
+         <mvexport file = "{sessionfile}" 
+                   fields = "session_id, expire_time"
+                   delimiter=":">
+         <mvcreate name="accounts_db"
+                  database="{accounts_dbf}"
+                  fields="user          char(12),
+                          fname         char(30),
+                          passwd        char(20),
+                          email         char(50),
+                          state         char(10),
+                          log_seq       number(3.0),
+                          creat_time    number(10.0),
+                          sessionid     char(33),
+                          expir_time    number(10),
+                          page_title    char(100),
+                          banner_url    char(80),
+                          banner_lnk    char(80),
+                          bg_url        char(80),
+                          blurb         memo">
+   
+         <mvmakeindex name="accounts_db"
+                      indexfile="{accounts_idx}"
+                      flags = "unique, ascending"
+                      expr = "{accounts_db.d.user}">
+ 
+         <mvclose name="{accounts_db}">
+
+         ********************************************
+         * Put some default values in the config file
+         ********************************************
+         <mvassign name="config" value="banner_url=banner.jpg">
+         <mvexport file="{configfile}" fields="config" delimiter="">
+         <mvassign name="config" value="banner_link=main.mvc">
+         <mvexport file="{configfile}" fields="config" delimiter="">
+   
+         <mvassign name="config" value="bg_url=pebbles.jpg">
+         <mvexport file="{configfile}" fields="config" delimiter="">
+    
+         <mvassign name="config" value="allow_user_create=0">
+         <mvexport file="{configfile}" fields="config" delimiter="">
+
+         *******************************************
+         * read back the config file we just created
+         *******************************************
+         <mvdo file="main.mvc" name="dummy" value="{read_config()}">
+
+         ******************************
+         * .. and start administrating!
+         ****************************** 
+         <mvdo file="admin.mvc" name="dummy" value="{put_admin()}">
+      </mvif>
+   </mvif>
+</mvfunction>

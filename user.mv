@@ -1,0 +1,446 @@
+<mvfunction name="reentry" standardoutputlevel="">
+   <mvif expr="{function eq 'user_admin'}">
+      <mveval expr="{user_admin()}">
+   </mvif>
+
+   <mvif expr="{function eq 'delete_log'}">
+      <mveval expr="{delete_log()}">
+   </mvif>
+
+   <mvif expr="{function eq 'new_log'}">
+      <mveval expr="{new_log()}">
+   </mvif>
+
+   <mvif expr="{function eq 'put_newlog'}">
+      <mveval expr="{put_newlog()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_newlog'}">
+      <mveval expr="{get_newlog()}">
+   </mvif>
+
+   <mvif expr="{function eq 'put_userconfig'}">
+      <mveval expr="{put_userconfig()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_userconfig'}">
+      <mveval expr="{get_userconfig()}">
+   </mvif>
+
+   <mvif expr="{function eq 'move_log'}">
+      <mveval expr="{move_log()}">
+   </mvif>
+</mvfunction>
+
+
+<mvfunction name="assign_userfiles" standardoutputlevel="">
+   <mvassign name="userdir" value="{basedir$'/'$account}">
+   <mvassign name="logs_dbf" value="{userdir$'/logs.dbf'}">
+   <mvassign name="logs_dbt" value="{userdir$'/logs.dbt'}">
+   <mvassign name="logs_idx" value="{userdir$'/logs.idx'}">
+   <mvassign name="logorder_idx" value="{userdir$'/logorder.idx'}">
+</mvfunction>
+
+
+<mvfunction name="user_admin" standardoutputlevel="">
+   <mvassign name="file" value="user.mvc">
+   <mvassign name="function" value="user_admin">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="account,session_id,file,function,parameters,mode">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{assign_userfiles()}">
+   <mvassign name="dummy" value="{read_userconfig()}">
+   <miva standardoutputlevel="text, html">
+   <html>
+      <head>
+         <title>DX Logbook Account Maintenance</title>
+         <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+      </head>
+      <body bgcolor="#ffffaf" background="{g.bg_url}"> 
+         <center>
+            <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+            <hr>
+            [<a href="{'main.mvc?action=acctconfig&account='$account$'&session_id='$session_id}">Configure</a>]
+            [<a href="{'main.mvc?action=newlog&account='$account$'&session_id='$session_id}">New Logbook</a>]
+            [<a href="{'main.mvc?action=newpasswd&account='$account$'&session_id='$session_id}">Change Password</a>]
+            [<a href="{'main.mvc?account='$account}">Log Out</a>]<br>
+            <h1>DX Logbook Account Maintenance</h1>
+            <mveval expr="{g.blurb}"><p>
+            <mvopen name="logs_db" database="{logs_dbf}" indexes="{logorder_idx}">
+            <mvgo name="logs_db" row="top">
+            <table>
+               <mvassign name="lognum" value="{0}">
+               <mvwhile expr="{not logs_db.d.eof}">
+                  <mvassign name="lognum" value="{lognum + 1}">
+                  <tr>
+                     <td align="right">
+                        <mvif expr="{lognum ne 1}">
+                           [<a href="{'main.mvc?action=moveup&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_order}">move up</a>]
+                        </mvif>
+                        <mvif expr="{lognum ne logs_db.d.totrec}">
+                           [<a href="{'main.mvc?action=movedown&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_order}">move down</a>]
+                        </mvif>
+                        [<a href="{'main.mvc?action=logadmin&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_id}">edit</a>]
+                        [<a href="{'main.mvc?action=deletelog&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_id}">delete</a>]
+                        [<a href="{'main.mvc?action=reindexlog&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_id}">reindex</a>]
+                     </td>
+                     <td>
+                        <li><b><mveval expr="{logs_db.d.logname}"></b> 
+                        <mvif expr="{logs_db.d.subtitle}">
+                           - <mveval expr="{logs_db.d.subtitle}">
+                        </mvif>
+                     </td>
+                  </tr>
+                  <mvskip name="logs_db" rows="1">
+               </mvwhile>
+            </table>
+            <mvclose name="logs_db">
+          </center>
+      </body>
+   </html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="delete_log" standardoutputlevel="">
+   <mvassign name="file" value="user.mvc">
+   <mvassign name="function" value="deletelog">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="action,account,session_id,logbook,file,function,parameters">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{assign_userfiles()}">
+   *********************************************************
+   * give user a second chance before deleting the logbook!
+   *********************************************************
+   <mvif expr="{request_method ne 'POST'}">
+      <mvopen name="logs_db" database="{logs_dbf}" indexes="{logs_idx}">
+      <mvfind value="{logbook}" exact="EXACT">
+      <miva standardoutputlevel="text, html">
+      <html>
+         <head>
+            <title>Delete DX Logbook</title>
+         </head>
+         <body bgcolor="#ffffaf" background="{g.bg_url}"> 
+            <center>
+               <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+               <h1>You're about to delete the DX Logbook<br> 
+                  <i>&quot;<mveval expr="{logs_db.d.logname}">&quot;</i></h1>
+               <font color="red">All data will be permanently destroyed.</font>
+               <p>Are you sure?
+               <p>
+               <form action="main.mvc" method="POST">
+                  <mvhide fields="{browse_state}">
+                  <input type="submit" name="do_it" value="proceed" >
+               </form>
+            </center>
+         </body>
+      </html>
+   <mvelse>
+      <mvif expr="{do_it eq 'proceed'}">
+         <mvlockfile file="{logs_dbf}"><mvlockfile file="{logs_idx}"><mvlockfile file="{logorder_idx}">
+         <mvopen name="logs_db" database="{logs_dbf}" indexes="{logs_idx$','$logorder_idx}">
+         <mvfind value="{logbook}" exact="EXACT">
+         <mvdelete name="logs_db">
+         <mvpack name="logs_db">
+         <mvclose name="logs_db">
+         </mvlockfile></mvlockfile></mvlockfile>
+         <mvdo file="logbook.mvc" name="dummy" value="{delete_logbookfiles()}">
+      </mvif>
+      <mveval expr="{user_admin()}">
+   </mvif>
+</mvfunction>
+
+
+
+<mvfunction name="new_log" standardoutputlevel="">
+   <mvif expr="{request_method ne 'POST'}"> 
+      <mvassign name="dummy" value="{put_newlog()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_newlog()}">
+   </mvif>
+</mvfunction>
+
+<mvfunction name="put_newlog" standardoutputlevel="">
+   ***********************************************
+   * Send the logbook creation form to the browser
+   ***********************************************
+   <mvassign name="file" value="user.mvc">
+   <mvassign name="function" value="put_newlog">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="file,function,parameters,action,account,session_id">      
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <miva standardoutputlevel="text, html">
+   <html><head><title>Create New Logbook</title></head>
+   <body bgcolor="#ffffaf" background="{g.bg_url}">
+      <center>
+      <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+      <h1>Create New Logbook</h1>
+      Fill in the information below to create a new Logbook
+      <mvif expr="{g.form_error}">
+         <p><font color="red">
+            <mveval expr="{form_error}">
+         </font>
+         </mvif>
+         <hr>
+      <form action="main.mvc" method="POST">
+         <mvhide fields="action,account,session_id">
+         <table>
+            <tr><th>Logbook Title:</th><td><input name="f_logname" type="text" size="80" value="{f_logname}"></td></tr>
+            <tr><th>Subtitle:</th><td><input name="f_subtitle" type="text" size="80" value="{f_logname}"></td></tr>
+            <tr>
+               <th>Logbook Type:</th>
+               <td>
+                  <select name="f_type">
+                     <option value="bcdx" selected>Broadcast DX Logbook (AM/FM/SW/TV)</option>
+                     <option value="scan">Broadcast Bandscan/Station Listing</option>
+                  </select>
+               </td>
+            </tr>
+            <tr>
+               <th>Default Sorting:</th>
+               <td>
+                  <select name="f_sortby" >
+                     <option value="freq">Sort by Frequency</option>
+                     <option value="call">Sort by Call/Name</option>
+                     <option value="qth">Sort by Location</option>
+                     <option value="entry" selected>Sort by Order of Entry</option>
+                  </select>
+                  <select name="f_sortorder" >
+                     <option value="A">Ascending</option>
+                     <option value="D" selected>Descending</option>
+                  </select>  
+               </td>
+            </tr>
+
+            <tr><td><b>Logbook Description:</b><br>(HTML allowed)</td><td><textarea name="f_comments" cols="80" rows="10" wrap="virtual"><mveval expr="{f_comments}"></textarea></td></tr>
+
+         </table>
+         <hr>
+         <input type="submit" name="do_it" value="submit"> <input type="submit" name="do_it" value="cancel">
+      </form>
+   </body>
+   </html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="get_newlog" standardoutputlevel="">
+   ***********************************************
+   * Create new logbook for user
+   ***********************************************
+   <mvif expr="{do_it eq 'submit'}">
+      <mvassign name="file" value="user.mvc">
+      <mvassign name="function" value="get_newlog">
+      <mvassign name="parameters" value="">
+      <mvassign name="browse_state" value="file,function,parameters,account,session_id,f_logname,f_subtitle,f_comments,f_type">
+   
+      * Make sure account is logged in
+      <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+      * make sure account exists and is active
+      <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}">
+      <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+      <mvassign name="notfound" value="true">
+      <mvfind name="accounts_db" value="{account}" exact="EXACT">
+      <mvif expr="{not accounts_db.d.eof}">
+         <mvassign name="notfound" value="">
+         <mvassign name="notactive" value="true">
+         <mvif expr="{accounts_db.d.state eq 'active'}">
+            <mvassign name="notactive" value="">
+            <mvassign name="accounts_db.d.log_seq" value="{accounts_db.d.log_seq + 1}"> 
+            <mvassign name="l.log_seq" value="{accounts_db.d.log_seq}">
+            <mvupdate name="accounts_db">
+         </mvif>
+      </mvif>
+      <mvclose name="accounts_db">
+      </mvlockfile></mvlockfile>
+
+      * if the account is bogus, show 'em the door
+      <mvif expr="{notfound or notactive}">
+         <mvassign name="action" value=""/>
+         <mvdo file="main.mvc">
+         <mvexit>
+      </mvif>
+   
+      * update user's list of logbooks
+      <mvassign name="dummy" value="{read_userconfig()}">
+      <mvassign name="dummy" value="{assign_userfiles()}">
+      <mvlockfile file="{logs_dbf}"><mvlockfile file="{logs_idx}"><mvlockfile file="{logorder_idx}">
+      <mvopen name="logs_db" database="{logs_dbf}" indexes="{logorder_idx$','$logs_idx}">
+      <mvassign name="l.log_id" value="{'dxlog_'$l.log_seq}">
+      <mvassign name="logs_db.d.log_order" value="{l.log_seq}">
+      <mvassign name="logs_db.d.log_id" value="{l.log_id}">
+      <mvassign name="logs_db.d.logname" value="{f_logname}">
+      <mvassign name="logs_db.d.subtitle" value="{f_subtitle}">
+      <mvassign name="logs_db.d.blurb" value="{f_comments}">
+      <mvassign name="logs_db.d.creat_time" value="{time_t}">
+      <mvassign name="logs_db.d.banner_url" value="{g.banner_url}">
+      <mvassign name="logs_db.d.banner_lnk" value="{g.banner_link}">
+      <mvassign name="logs_db.d.bg_url" value="{g.bg_url}">
+      <mvassign name="logs_db.d.logtype" value="{f_type}">
+      <mvassign name="logs_db.d.sortby" value="entry">
+      <mvassign name="logs_db.d.sortorder" value="D">
+      <mvassign name="logs_db.d.readonly" value="false">
+      <mvassign name="logs_db.d.tally" value="0">
+
+      <mvadd name="logs_db">
+      <mvclose name="logs_db">
+      <mvassign name="logbook" value="{l.log_id}">
+      <mvdo file="logbook.mvc" name="dummy" value="{create_logbookfiles()}">
+      </mvlockfile></mvlockfile></mvlockfile>
+   </mvif>
+   <mvassign name="dummy" value="{user_admin()}">
+</mvfunction>
+
+<mvfunction name="user_config" standardoutputlevel="">
+   <mvif expr="{request_method ne 'POST'}"> 
+      <mvassign name="dummy" value="{put_userconfig()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_userconfig()}">
+   </mvif>
+</mvfunction>
+
+
+<mvfunction name="put_userconfig" standardoutputlevel="">
+   <mvassign name="file" value="user.mvc">
+   <mvassign name="function" value="put_userconfig">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="file,function,parameters,action,account,session_id">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{read_userconfig()}">
+      **********************
+      * Send the config form
+      **********************
+      <miva standardoutputlevel="text, html">
+      <html>
+         <head><title>DX Logbook Account Index Page Configuration</title></head>
+         <body bgcolor="#ffffaf" background="{g.bg_url}">
+            <center>
+               <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+               <hr>
+               <h1>DX Logbook Account Index Page Configuration</h1>
+               <form action="main.mvc" method="POST" >
+               <mvhide fields="action,account,session_id">
+               <table>
+                  <tr>
+                     <th>Background Image URL:</th>
+                     <td><input type="text" name="f_bg_url" value="{g.bg_url}" size="40"></td>
+                  </tr>
+                  <tr>
+                     <th>Banner Image URL:</th>
+                     <td><input type="text" name="f_banner_url" value="{g.banner_url}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Banner Link URL:</th>
+                     <td><input type="text" name="f_banner_link" value="{g.banner_link}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Title of your Index Page:</th>
+                     <td><input type="text" name="f_page_title" value="{g.page_title}" size="100"></td>
+                  </tr>
+                   <tr>
+
+                     <th>Whatever info you want to include<br>
+                           on your Index Page:</b><br>(HTML allowed)</th>
+                     <td><textarea name="f_comments" cols="80" rows="10" wrap="virtual"><mveval expr="{g.blurb}"></textarea></td>
+
+
+
+
+                  </tr>
+              </table>
+               <hr>
+               <input type="submit" name="do_it" value="submit">
+               <input type="submit" name="do_it" value="Cancel">
+               </form>
+            </center>
+         </body>
+      </html>
+      <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="get_userconfig" standardoutputlevel="">
+   <mvif expr="{do_it eq 'submit'}">
+      <mvassign name="file" value="user.mvc">
+      <mvassign name="function" value="get_userconfig">
+      <mvassign name="parameters" value="">
+      <mvassign name="browse_state" value="file,function,parameters,account,session_id,f_page_title,f_banner_url,f_banner_link,f_bg_url,f_comments">
+      <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+      * make sure account exists
+      <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+      <mvfind name="accounts_db" value="{account}" exact="EXACT">
+      <mvif expr="{not accounts_db.d.eof}">
+
+         * Account exists, update config info
+         <mvassign name="accounts_db.d.banner_url" value="{f_banner_url}">
+         <mvassign name="accounts_db.d.banner_lnk" value="{f_banner_link}">
+         <mvassign name="accounts_db.d.bg_url" value="{f_bg_url}">
+         <mvassign name="accounts_db.d.page_title" value="{f_page_title}">
+         <mvassign name="accounts_db.d.blurb" value="{f_comments}">
+         <mvupdate name="accounts_db">
+      </mvif>
+
+      <mvclose name="accounts_db">
+      <mvassign name="dummy" value="{read_userconfig()}">
+   </mvif>
+   <mvassign name="dummy" value="{user_admin()}">
+</mvfunction>
+
+
+
+<mvfunction name="read_userconfig" standardoutputlevel="">
+   * make sure account exists
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+   <mvfind name="accounts_db" value="{account}" exact="EXACT">
+   <mvif expr="{not accounts_db.d.eof}">
+
+      * Account exists, read config info
+      <mvassign name="g.banner_url" value="{accounts_db.d.banner_url}">
+      <mvassign name="g.banner_link" value="{accounts_db.d.banner_lnk}">
+      <mvassign name="g.bg_url" value="{accounts_db.d.bg_url}">
+      <mvassign name="g.page_title" value="{accounts_db.d.page_title}">
+      <mvassign name="g.blurb" value="{accounts_db.d.blurb}">
+
+   <mvelse> * account doesn't exist, fall back to system default
+      <mvdo file="main.mvc" name="dummy" value="{read_config()}">
+   </mvif>
+   <mvclose name="accounts_db">
+</mvfunction>
+
+<mvfunction name="move_log" standardoutputlevel="">
+   <mvassign name="file" value="user.mvc">
+   <mvassign name="function" value="move_log">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="action,account,session_id,logbook,file,function,parameters">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{assign_userfiles()}">
+
+   <mvopen name="logs_db" database="{logs_dbf}" indexes="{logorder_idx$','$logs_idx}">
+   <mvfind name="logs_db" value="{logbook}" exact="EXACT">
+   <mvassign name="seq1" value="{logs_db.d.log_order}">
+
+   <mvif expr="{action eq 'moveup'}">
+      <mvskip name="logs_db" rows="-1">
+   <mvelse>
+      <mvskip name="logs_db" rows="1">
+   </mvif>
+   <mvassign name="seq2" value="{logs_db.d.log_order}">
+   <mvassign name="logs_db.d.log_order" value="0">
+   <mvupdate name="logs_db">
+
+   <mvfind name="logs_db" value="{seq1}" exact="EXACT">
+   <mvassign name="logs_db.d.log_order" value="{seq2}">
+   <mvupdate name="logs_db">
+
+   <mvfind name="logs_db" value="0" exact="EXACT">
+   <mvassign name="logs_db.d.log_order" value="{seq1}">
+   <mvupdate name="logs_db">
+
+   <mvclose name="logs_db">
+
+   <mveval expr="{user_admin()}">
+</mvfunction>
+
+

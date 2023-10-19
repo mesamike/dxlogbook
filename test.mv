@@ -1,0 +1,10 @@
+<MvOPEN NAME = "foo" 
+        DATABASE = "test/AMSTATIO.DBF">
+
+<mvmakeindex name="foo" 
+             indexfile = "test/AMSTATIO.IDX"
+             EXPR = "{foo.d.FREQUENCY}">
+
+<mvreindex name = "foo">
+
+<MvCLOSE NAME = "foo">

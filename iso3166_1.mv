@@ -1,0 +1,66 @@
+<miva standardoutputlevel="">
+
+
+************************************************
+* Set variables common to all dx logbook scripts
+************************************************
+<mvdo file="common.mvc">
+
+*******************************************************************
+* If our base directory doesn't exist, we must not be installed yet.
+********************************************************************
+<mvif expr="{not fexists(basedir)}">
+   <miva standardoutputlevel="text,html">
+   <html><head><title>DX Logbook Not Installed</title></head>
+         <body><h1>DX Logbook Not Installed!</h1></body></html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvif>
+
+
+****************************
+* Import the ISO3166-1 file
+****************************
+<mvif expr="{not fexists(iso3166_1_dbf)}">
+   <mvcreate name="iso3166_1_db"
+             database="{g.iso3166_1_dbf}"
+             fields="cntry         char(40),
+                     code2         char(2),
+                     code3         char(3),
+                     code_dx       char(3)">
+   <mvmakeindex name="iso3166_1_db"
+                indexfile="{g.iso3166_1_code2_idx}"
+                flags="ascending"
+                expr="{iso3166_1_db.d.code2}">
+   <mvmakeindex name="iso3166_1_db"
+                indexfile="{g.iso3166_1_code3_idx}"
+                flags="ascending"
+                expr="{iso3166_1_db.d.code3}">
+   <mvmakeindex name="iso3166_1_db"
+                indexfile="{g.iso3166_1_code_dx_idx}"
+                flags="ascending"
+                expr="{iso3166_1_db.d.code_dx}">
+
+   <mvif expr="{not fexists(iso3166_1_dat)}">
+      <mveval expr="{'Country codes file '$iso3166_1_dat$' not found'}">
+      <mvexit>
+   <mvelse>
+      <mvimport file="{iso3166_1_dat}"
+                fields="l.cntry,
+                        l.code2,
+                        l.code3,
+                        l.code_dx"
+                delimiter=":">
+
+         <mvassign name="d.cntry" value="{l.cntry}">
+         <mvassign name="d.code2" value="{l.code2}">
+         <mvassign name="d.code3" value="{l.code3}">
+         <mvassign name="d.code_dx" value="{l.code_dx}">
+         <mvadd>
+      </mvimport>
+   </mvif>
+   <mvclose>
+   <miva standardoutputlevel="text,html">
+   Country codes database created 
+   <miva standardoutputlevel="">
+</mvif>

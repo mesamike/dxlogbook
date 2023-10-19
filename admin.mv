@@ -1,0 +1,736 @@
+<miva standardoutputlevel="">
+
+
+***********************************************
+* Set variables common to all dxlogbook scripts
+***********************************************
+<mvdo file="common.mvc">
+
+
+********************************************************************
+* If our base directory doesn't exist, we must not be installed yet.
+********************************************************************
+<mvif expr="{not fexists(basedir)}">
+   <miva standardoutputlevel="text,html">
+   <html><head><title>DX Logbook Not Installed</title></head>
+         <body><h1>DX Logbook Not Installed!</h1></body></html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvif>
+
+**********************
+* Read the config file
+**********************
+<mvdo file="main.mvc" name="dummy" value="{read_config()}"/>
+
+
+
+********************************
+* dispatch the requested action 
+********************************
+<mvif expr="{not g.action}">
+   <mveval expr="{put_admin()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'config'}">
+   <mveval expr="{do_config()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'newaccount'}">
+   <mveval expr="{do_newaccount()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'reindex'}">
+   <mveval expr="{do_reindex()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'edit'}">
+   <mveval expr="{do_editaccount()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'deleteaccount'}">
+   <mveval expr="{do_deleteaccount()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'undeleteaccount'}">
+   <mveval expr="{do_undeleteaccount()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'setstate'}">
+   <mveval expr="{do_setstate()}"/>
+   <mvexit/>
+</mvif>
+
+<mvif expr="{g.action eq 'reindexlogs'}">
+   <mveval expr="{do_reindexlogs()}"/>
+   <mvexit/>
+</mvif>
+
+<mveval expr="{put_admin()}"/>
+<mvexit/>
+
+*******
+* Done!
+*******
+
+***********************************
+* function definitions below here *
+***********************************
+
+
+<mvfunction name="reentry" standardoutputlevel="">
+   <mvif expr="{function eq 'put_admin'}">
+      <mveval expr="{put_admin()}">
+   </mvif>
+
+   <mvif expr="{function eq 'put_config'}">
+      <mveval expr="{put_config()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_config'}">
+      <mveval expr="{get_config()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_editaccount'}">
+      <mveval expr="{get_editaccount()}">
+   </mvif>
+
+   <mvif expr="{function eq 'do_deleteaccount'}">
+      <mveval expr="{do_deleteaccount()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_newaccount'}">
+      <mveval expr="{get_newaccount()}">
+   </mvif>
+
+   <mvif expr="{function eq 'do_setstate'}">
+      <mveval expr="{do_setstate()}">
+   </mvif>
+</mvfunction>
+
+<mvfunction name="put_admin" standardoutputlevel="">
+   ****************************
+   * send admin page to browser
+   ****************************
+   <mvassign name="mode" value="admin">
+   <mvassign name="file" value="admin.mvc">
+   <mvassign name="function" value="put_admin">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="session_id,file,function,parameters,mode">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title>Dx Logbook Administration</title>
+         <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+      </head>
+      <body bgcolor="#ffffaf" background="{bg_url}"> 
+         <center>
+            <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+            <hr>
+            [<a href="{'admin.mvc?action=config&session_id='$session_id}">Configure</a>]
+            [<a href="{'admin.mvc?action=newaccount&mode=admin&session_id='$session_id}">New Account</a>]
+            [<a href="{'admin.mvc?action=reindex&session_id='$session_id}">Reindex</a>]
+            [<a href="main.mvc">Log Out</a>]<br>
+            <h1>DX Logbook Administration</h1>
+            <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+            <mvgo name="accounts_db" row="top">
+            <table>
+               <tr align="left"><th>User ID</th><th>Name</th><th>Email</th><th>State</th><th>Logseq</th></tr>
+               <mvwhile expr="{not accounts_db.d.eof}">
+                  <tr>
+                     <td><mveval expr="{accounts_db.d.user}"></td>
+                     <td><mveval expr="{accounts_db.d.fname}"></td>
+                     <td><a href="{'mailto:'$accounts_db.d.email}">
+                         <mveval expr="{accounts_db.d.email}"></a></td>
+                     <td><mveval expr="{accounts_db.d.state}"></td>
+                     <td align="right"><mveval expr="{accounts_db.d.log_seq}"></td>
+                     <td>
+                        [<a href="{'admin.mvc?action=edit&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                           >edit</a>]
+                        <mvif expr="{accounts_db.d.state eq 'pending' or accounts_db.d.state eq 'suspended'}">  
+                           [<a href="{'admin.mvc?action=setstate&f_state=active&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                            >activate</a>] 
+                        <mvelse>
+                           [<a href="{'admin.mvc?action=setstate&f_state=suspended&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                            >suspend</a>]
+                        </mvif>
+                        <mvif expr="{accounts_db.d.state eq 'deleted'}">
+                           [<a href="{'admin.mvc?action=undeleteaccount&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                           >undelete</a>] 
+                        <mvelse>
+                           [<a href="{'admin.mvc?action=deleteaccount&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                           >delete</a>]
+                        </mvif>
+                        [<a href="{'admin.mvc?action=reindexlogs&f_user='$accounts_db.d.user$'&session_id='$session_id}"
+                           >reindex logs db</a>]
+                     </td> 
+                  </tr>
+                  <mvskip name="accounts_db" rows="1"/>
+               </mvwhile>
+            </table>
+            <mvclose name="accounts_db">
+          </center>
+      </body>
+   </html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+
+<mvfunction name="do_config" standardoutputlevel="">
+   <mvif expr="{request_method ne 'POST'}">
+      <mvassign name="dummy" value="{put_config()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_config()}">
+   </mvif>
+</mvfunction>
+
+
+
+<mvfunction name="put_config" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc">
+   <mvassign name="function" value="put_config">
+   <mvassign name="parameters" value="">
+   <mvassign name="mode" value="admin">
+   <mvassign name="browse_state" value="file,function,parameters,mode">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}">
+
+      <mvif expr="{allow_user_create eq '1'}">
+         <mvassign name="checked" value="checked">
+      </mvif>
+      **********************
+      * Send the config form
+      **********************
+      <miva standardoutputlevel="text,html">
+      <html>
+         <head><title>DX Logbook Configuration</title></head>
+         <body bgcolor="#ffffaf" background="{g.bg_url}">
+            <center>
+               <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+               <hr>
+               <form action="admin.mvc" method="POST">
+               <mvhide fields="action, session_id">
+               <table>
+                  <tr>
+                     <th>Background Image URL:</th>
+                     <td><input type="text" name="f_bg_url" value="{g.bg_url}" size="40"></td>
+                  </tr>
+                  <tr>
+                     <th>Banner Image URL:</th>
+                     <td><input type="text" name="f_banner_url" value="{g.banner_url}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Banner Link URL:</th>
+                     <td><input type="text" name="f_banner_link" value="{g.banner_link}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Allow users to create thier own logbooks:</th>
+                     <td><input type="checkbox" name="f_allow_user_create" checked="{checked}"  value="1"></td>
+                  </tr>
+              </table>
+               <hr>
+               <input type="submit" value="submit">
+               </form>
+            </center>
+         </body>
+      </html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="get_config" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc">
+   <mvassign name="function" value="put_admin">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="file,function,parameters,mode">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}">
+
+   <mvassign name="dummy" value="{fdelete(configfile)}">
+   <mvassign name="action" value="admin">
+   <mvassign name="config" value="{'banner_url='$f_banner_url}">
+   <mvexport file="{configfile}" fields="config" delimiter="">
+   <mvassign name="config" value="{'banner_link='$f_banner_link}">
+   <mvexport file="{configfile}" fields="config" delimiter="">
+   <mvassign name="config" value="{'bg_url='$f_bg_url}">
+   <mvexport file="{configfile}" fields="config" delimiter="">
+   <mvassign name="config" value="{'allow_user_create='$f_allow_user_create}">
+   <mvexport file="{configfile}" fields="config" delimiter="">
+
+   <mvassign name="dummy" value="{put_admin()}">
+</mvfunction>
+
+<mvfunction name="do_editaccount" standardoutputlevel="">
+   <mvif expr="{request_method ne 'POST'}">
+      <mvassign name="dummy" value="{put_editaccount()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_editaccount()}">
+   </mvif>
+</mvfunction>
+
+<mvfunction name="put_editaccount" standardoutputlevel="">
+   ***********************************************
+   * Send the account edit form to the browser
+   ***********************************************
+      <mvassign name="action" value="edit">
+      <mvassign name="browse_state" value="action, mode, session_id, f_user">      
+      <miva standardoutputlevel="text,html">
+      <html><head><title>Edit Account</title></head>
+      <body bgcolor="#ffffaf" background="{bg_url}">
+         <center>
+         <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+         <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+         <mvfind name="accounts_db" value="{f_user}" exact="EXACT">
+         <h1>Edit Account</h1>
+         Fill in the information below to edit the account
+         <mvif expr="{g.form_error}">
+            <p><font color="red">
+            <mveval expr="{form_error}">
+            </font>
+         </mvif>
+         <hr>
+         <form action="admin.mvc" method="POST">
+         <mvhide fields="{browse_state}">
+         <table>
+         <tr><th>Account username:</th><td><mveval expr="{accounts_db.d.user}"></td></tr>
+         <tr><th>Enter your full name:</th><td><input name="f_fname" type="text" value="{accounts_db.d.fname}"></td></tr>
+         <tr><th>New password:</th><td><input name="f_passwd" type="password"></td></tr>
+         <tr><th>New password again:</th><td><input name="f_passwd2" type="password"></td></tr>
+         <tr><th>E-mail address</th><td><input name="f_email" type="text" value="{accounts_db.d.email}"></td></tr>
+         </table>
+         <hr>
+         <input type="submit" name="do_it" value="proceed">
+         <input type="submit" name="do_it" value="cancel">
+         </form>
+      </body>
+      </html>
+      <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="get_editaccount" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc">
+   <mvassign name="function" value="get_editaccount">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" 
+      value="file,function,parameters,f_user,f_fname,f_passwd,f_passwd2,f_email,mode,session_id">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}">
+
+   <mvassign name="g.form_error" value="">
+
+   *******************************************
+   * make sure password entered the same twice
+   *******************************************
+   <mvif expr="{f_passwd ne f_passwd2}">
+      <mvassign name="g.form_error" value="Passwords must match">
+   </mvif>
+   
+   ********************************************
+   * make sure user has supplied e-mail address
+   ********************************************
+   <mvif expr="{(mode eq 'user') and not f_email}">
+      <mvassign name="g.form_error" value="Valid e-mail address is required!">
+   </mvif>
+
+   ***************************************
+   * lock files and open accounts database
+   ***************************************
+   <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}"> 
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+   <mvfind name="accounts_db" value="{f_user}" exact="EXACT">
+
+   *********************************************************
+   * if there are any problems user will have to do it again
+   *********************************************************
+   <mvif expr="{not g.form_error}">
+      **************************************************************
+      * The form looks OK, let's go ahead and create the new account  
+      **************************************************************
+      <mvassign name="accounts_db.d.fname" value="{f_fname}">
+      <mvif expr="{f_passwd}">
+         <mvassign name="accounts_db.d.passwd" value="{f_passwd crypt substring(f_user,1,2)}">
+      </mvif>
+      <mvassign name="accounts_db.d.email" value="{f_email}">
+      <mvupdate name="accounts_db">
+   </mvif>
+   <mvclose name="accounts_db">
+   </mvlockfile></mvlockfile>
+
+   <mvif expr="{g.form_error}">
+      <mvassign name="dummy" value="{put_editaccount()}">
+      <mvexit>
+   </mvif>
+
+   <mvassign name="g.action" value="">
+   <mvassign name="dummy" value="{put_admin()}">
+</mvfunction>
+
+<mvfunction name="do_newaccount" standardoutputlevel="">
+   <mvif expr="{not f_user}">
+      <mvassign name="dummy" value="{put_newaccount()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_newaccount()}">
+   </mvif>
+</mvfunction>
+
+
+<mvfunction name="put_newaccount" standardoutputlevel="">
+   ***********************************************
+   * Send the account creation form to the browser
+   ***********************************************
+   <mvif expr="{not mode}">
+      <mvassign name="mode" value="user">
+   </mvif>
+
+   <mvif expr="{(mode ne 'admin') and not allow_user_create}">
+      <mvdo file="main.mvc">
+   <mvelse>
+      <mvassign name="action" value="newaccount">
+      <mvassign name="browse_state" value="action, mode, session_id">      
+      <miva standardoutputlevel="text,html">
+      <html><head><title>Create New Account</title></head>
+      <body bgcolor="#ffffaf" background="{bg_url}">
+         <center>
+         <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+         <h1>Create New Account</h1>
+         Fill in the information below to create a new account
+         <mvif expr="{g.form_error}">
+            <p><font color="red">
+            <mveval expr="{form_error}">
+            </font>
+         </mvif>
+         <hr>
+         <form action="admin.mvc" method="POST">
+         <mvhide fields="{browse_state}">
+         <table>
+         <tr><th>Pick a login ID:</th><td><input name="f_user" type="text"></td></tr>
+         <tr><th>Enter your full name:</th><td><input name="f_fname" type="text"></td></tr>
+         <tr><th>Pick a password:</th><td><input name="f_passwd" type="password"></td></tr>
+         <tr><th>Enter password again:</th><td><input name="f_passwd2" type="password"></td></tr>
+         <tr><th>E-mail address</th><td><input name="f_email" type="text"></td></tr>
+         </table>
+         <hr>
+         <input type="submit" value="submit">
+         </form>
+      </body>
+      </html>
+      <miva standardoutputlevel="">
+   </mvif>
+   <mvexit>
+</mvfunction>
+
+
+<mvfunction name="get_newaccount" standardoutputlevel="">
+   *************************************************
+   * anyone claiming to be admin has to be validated
+   *************************************************
+   <mvif expr="{mode eq 'admin'}">
+      <mvassign name="file" value="admin.mvc">
+      <mvassign name="function" value="get_newaccount">
+      <mvassign name="parameters" value="">
+      <mvassign name="browse_state" 
+         value="file,function,parameters,f_user,f_fname,f_passwd,f_passwd2,f_email,mode,session_id">
+      <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}">
+   </mvif>
+
+   <mvassign name="g.form_error" value="">
+   ************************
+   * check for blank fields
+   ************************
+   <mvif expr="{not f_user or not f_passwd or not f_passwd2}">
+      <mvassign name="g.form_error" value="Blank login ID or Password field">
+   </mvif>
+
+   *******************************************
+   * make sure password entered the same twice
+   *******************************************
+   <mvif expr="{f_passwd ne f_passwd2}">
+      <mvassign name="g.form_error" value="Passwords must match">
+   </mvif>
+   
+   ********************************************
+   * make sure user has supplied e-mail address
+   ********************************************
+   <mvif expr="{(mode eq 'user') and not f_email}">
+      <mvassign name="g.form_error" value="Valid e-mail address is required!">
+   </mvif>
+
+   ***************************************
+   * lock files and open accounts database
+   ***************************************
+   <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}"> 
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+
+   ***********************************
+   * see if usernmame is already taken
+   ***********************************   
+   <mvfind name="accounts_db" value="{f_user}" exact="EXACT">
+   <mvif expr="{not accounts_db.d.eof}">
+      <mvassign name="g.form_error" value="The login ID already exists. Pick another one">
+   </mvif>
+         
+   *********************************************************
+   * if there are any problems user will have to do it again
+   *********************************************************
+   <mvif expr="{not g.form_error}">
+      **************************************************************
+      * The form looks OK, let's go ahead and create the new account  
+      **************************************************************
+      <mvif expr="{mode ne 'admin'}">
+         <mvassign name="validation_code" value="{makesessionid()}">
+         <mvassign name="logstate" value="pending">
+          * send e-mail to user here *
+      <mvelse>
+         <mvassign name="logstate" value="active">
+      </mvif>
+
+      <mvassign name="accounts_db.d.log_seq" value="0">
+      <mvassign name="accounts_db.d.user" value="{f_user}">
+      <mvassign name="accounts_db.d.fname" value="{f_fname}">
+      <mvassign name="accounts_db.d.passwd" value="{f_passwd crypt substring(f_user,1,2)}">
+      <mvassign name="accounts_db.d.email" value="{f_email}">
+      <mvassign name="accounts_db.d.state" value="{logstate}">
+      <mvassign name="accounts_db.d.expir_time" value="0">
+      <mvif expr="{logstate eq 'pending'}">
+         <mvassign name="accounts_db.d.sessionid" value="{validation_code}">
+      <mvelse>
+         <mvassign name="accounts_db.d.sessionid" value="-1">
+      </mvif>
+      <mvassign name="accounts_db.d.creat_time" value="{time_t}">
+
+
+      ******************************************************
+      * put some default values in user's page config fields
+      ******************************************************
+      <mvassign name="accounts_db.d.page_title" value="{accounts_db.d.fname$'\'s DX logbooks'}">
+      <mvassign name="accounts_db.d.banner_url" value="{g.banner_url}">
+      <mvassign name="accounts_db.d.banner_lnk" value="{g.banner_link}">
+      <mvassign name="accounts_db.d.bg_url" value="{g.bg_url}">
+      <mvadd>  
+      ***********************************************************
+      * now set up the users' data directory and logbook database
+      ***********************************************************
+      <mvassign name="userdir" value="{basedir$'/'$accounts_db.d.user}">
+      <mvassign name="logs_dbf" value="{userdir$'/logs.dbf'}">
+      <mvassign name="logs_idx" value="{userdir$'/logs.idx'}">
+      <mvassign name="logorder_idx" value="{userdir$'/logorder.idx'}">
+ 
+      <assign name="dummy"  value="{fmkdir(userdir)}">
+      <mvcreate name="logs_db" 
+                      database="{logs_dbf}" 
+                      fields="log_id        char(10),
+                              logname       char(80),
+                              creat_time    number(10.0),
+                              banner_url    char(80),
+                              banner_lnk    char(80),
+                              bg_url        char(80),
+                              logtype       char(5),
+                              readonly      bool,
+                              sortby        char(5),
+                              sortorder     char(1),
+                              log_order     char(10),   
+                              tally         bool,
+                              blurb         memo">
+
+      <mvmakeindex name="logs_db" 
+                   indexfile="{logs_idx}"
+                   flags = "unique, ascending"
+                   expr = "{logs_db.d.log_id}">
+
+      <mvmakeindex name="logs_db" 
+                   indexfile="{logorder_idx}"
+                   flags = "unique, ascending"
+                   expr = "{logs_db.d.log_order}">
+
+      <mvclose name="logs_db">
+   </mvif>
+   <mvclose name="accounts_db">
+   </mvlockfile></mvlockfile>
+
+   <mvif expr="{g.form_error}">
+      <mvassign name="dummy" value="{put_newaccount()}">
+      <mvexit>
+   </mvif>
+
+   <mvassign name="g.action" value="">
+   <mvif expr="{mode eq 'admin'}">
+      <mvassign name="dummy" value="{put_admin()}">
+   <mvelse>
+      <mvdo file="main.mvc">
+   </mvif>
+</mvfunction>
+
+********************
+* reindexing utility
+********************
+<mvfunction name="do_reindex" standardoutputlevel="">
+   <mvlockfile file="{accounts_dbf}">
+   <mvassign name="dummy" value="{fdelete(accounts_idx)}">
+   <MvOPEN NAME = "accounts_db" DATABASE = "{accounts_dbf}">
+   <MvMAKEINDEX NAME = "accounts_db" INDEXFILE = "{accounts_idx}"
+		EXPRESSION = "{accounts_db.d.user}"
+		FLAGS = "ascending">
+   <mvclose name="accounts_db">
+   </mvlockfile>
+   <mvassign name="dummy" value="{put_admin()}">
+</mvfunction>
+
+
+********************
+* reindexing a user's logbook database
+********************
+<mvfunction name="do_reindexlogs" standardoutputlevel="">
+   <mvassign name="userdir" value="{basedir$'/'$f_user}">
+   <mvassign name="logs_dbf" value="{userdir$'/logs.dbf'}">
+   <mvassign name="logs_idx" value="{userdir$'/logs.idx'}">
+   <mvassign name="logorder_idx" value="{userdir$'/logorder.idx'}">
+   <mvassign name="logseq" value="{0}">
+
+
+   <mvassign name="dummy" value="{fdelete(logs_idx)}">
+   <mvassign name="dummy" value="{fdelete(logorder_idx)}">
+
+   <MvOPEN NAME = "logs_db" DATABASE = "{logs_dbf}">
+   <mvwhile expr = "{not logs_db.d.EOF}">
+      <mvassign name = "logseq" value = "{logseq + 1}">
+      <mveval expr="{logseq$'<br>'}">
+      <mvassign name = "logs_db.d.log_order" value = "{logseq}">
+      <mvupdate name = "logs_db">
+      <mvskip name = "logs_db" ROWS = 1 >
+   </mvwhile> 
+
+   <mvlockfile file="{logs_dbf}">
+   <mvmakeindex name="logs_db" 
+                indexfile="{logs_idx}"
+                flags = "unique, ascending"
+                expr = "{logs_db.d.log_id}">
+
+   <mvmakeindex name="logs_db" 
+                indexfile="{logorder_idx}"
+                flags = "unique, ascending"
+                expr = "{logs_db.d.log_order}">
+
+   <mvclose name="logs_db">
+   </mvlockfile>
+   <mvassign name="dummy" value="{put_admin()}">
+</mvfunction>
+
+
+
+********************************
+* change the state of an account
+********************************
+<mvfunction name="do_setstate" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc"/>
+   <mvassign name="function" value="do_setstate"/>
+   <mvassign name="parameters" value=""/>
+   <mvassign name="browse_state"
+      value="file,function,parameters,action,f_user,f_state,mode,session_id"/>
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}"/>
+
+   ***************************************
+   * lock files and open accounts database
+   ***************************************
+   <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}"/>
+   <mvfind name="accounts_db" value="{f_user}" exact="EXACT"/>
+
+   ***********************
+   * update account state
+   **********************
+   <mvassign name="accounts_db.d.state" value="{f_state}"/>
+   <mvupdate name="accounts_db"/>
+
+
+   *********************************
+   * close database and unlock files
+   *********************************
+   <mvclose name="accounts_db"/>
+   </mvlockfile></mvlockfile>
+
+   **********************
+   * return to admin page
+   **********************
+   <mvassign name="g.action" value=""/>
+   <mvassign name="dummy" value="{put_admin()}"/> 
+</mvfunction>
+
+********************************
+* delete an account
+********************************
+<mvfunction name="do_deleteaccount" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc"/>
+   <mvassign name="function" value="do_deleteaccount"/>
+   <mvassign name="parameters" value=""/>
+   <mvassign name="browse_state"
+      value="file,function,parameters,action,f_user,f_state,mode,session_id"/>
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}"/>
+
+   ***************************************
+   * lock files and open accounts database
+   ***************************************
+   <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}"/>
+   <mvfind name="accounts_db" value="{f_user}" exact="EXACT"/>
+   <mvassign name="accounts_db.d.state" value="deleted">
+   <mvupdate>
+   <mvdelete name="accounts_db">
+   
+   <miva standardoutputlevel="text, html">
+   <center>Deleted account: <mveval expr="{f_user}"></center>
+   <miva standardoutputlevel="">
+
+   *********************************
+   * close database and unlock files
+   *********************************
+   <mvclose name="accounts_db"/>
+   </mvlockfile></mvlockfile>
+
+   **********************
+   * return to admin page
+   **********************
+   <mvassign name="g.action" value=""/>
+   <mvassign name="dummy" value="{put_admin()}"/> 
+</mvfunction>
+
+********************************
+* undelete an account
+********************************
+<mvfunction name="do_undeleteaccount" standardoutputlevel="">
+   <mvassign name="file" value="admin.mvc"/>
+   <mvassign name="function" value="do_undeleteaccount"/>
+   <mvassign name="parameters" value=""/>
+   <mvassign name="browse_state"
+      value="file,function,parameters,action,f_user,f_state,mode,session_id"/>
+   <mvdo file="auth.mvc" name="dummy" value="{verify_admin_login()}"/>
+
+   ***************************************
+   * lock files and open accounts database
+   ***************************************
+   <mvlockfile file="{accounts_dbf}"><mvlockfile file="{accounts_idx}">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}"/>
+   <mvfind name="accounts_db" value="{f_user}" exact="EXACT"/>
+   <mvundelete name="accounts_db">
+   <mvassign name="accounts_db.d.state" value="suspended">
+   <mvupdate>
+   
+
+   *********************************
+   * close database and unlock files
+   *********************************
+   <mvclose name="accounts_db"/>
+   </mvlockfile></mvlockfile>
+
+   **********************
+   * return to admin page
+   **********************
+   <mvassign name="g.action" value=""/>
+   <mvassign name="dummy" value="{put_admin()}"/> 
+</mvfunction>

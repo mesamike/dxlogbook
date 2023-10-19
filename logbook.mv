@@ -1,0 +1,1304 @@
+<mvfunction name="reentry" standardoutputlevel="">
+   <mvif expr="{function eq 'log_admin'}">
+      <mveval expr="{log_admin()}">
+   </mvif>
+
+   <mvif expr="{function eq 'delete_entry'}">
+      <mveval expr="{delete_entry()}">
+   </mvif>
+
+   <mvif expr="{function eq 'put_logconfig'}">
+      <mveval expr="{put_logconfig()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_logconfig'}">
+      <mveval expr="{get_logconfig()}">
+   </mvif>
+
+   <mvif expr="{function eq 'retally'}">
+      <mveval expr="{retally()}">
+   </mvif>
+
+   <mvif expr="{function eq 'create_logbookfiles'}">
+      <mveval expr="{create_logbookfiles()}">
+   </mvif>
+
+   <mvif expr="{function eq 'put_new_entry'}">
+      <mveval expr="{put_new_entry()}">
+   </mvif>
+
+   <mvif expr="{function eq 'get_new_entry'}">
+      <mveval expr="{get_new_entry()}">
+   </mvif>
+</mvfunction>
+
+#################################################################
+<mvfunction name="assign_logbookfiles" standardoutputlevel="">
+   <mvassign name="basedir"              value="dxlogbook">
+   <mvassign name="g.acct_dir"           value="{basedir$'/'$account}">
+   <mvassign name="g.logbase"            value="{g.acct_dir$'/'$logbook}">
+   <mvassign name="g.logentry_dbf"       value="{g.logbase$'.dbf'}">
+   <mvassign name="g.logentry_dbt"       value="{g.logbase$'.dbt'}">
+   <mvassign name="g.logentry_freq_idx"  value="{g.logbase$'_freq.idx'}">
+   <mvassign name="g.logentry_call_idx"  value="{g.logbase$'_call.idx'}">
+   <mvassign name="g.logentry_qth_idx"   value="{g.logbase$'_qth.idx'}">
+   <mvassign name="g.tally_dbf"       value="{g.logbase$'_tally.dbf'}">
+   <mvassign name="g.tally_idx"  value="{g.logbase$'_tally.idx'}">
+   <mvassign name="g.countries_db" value="{basedir$'/iso3166_1.dbf'}">
+   <mvassign name="g.code2idx" value="{basedir$'/iso3166_1_code2.idx'}">
+   <mvassign name="g.code3idx" value="{basedir$'/iso3166_1_code3.idx'}">
+   <mvassign name="g.countries_idx" value="{g.code2idx$','$g.code3idx}">
+
+   <mvassign name="g.all_idx" 
+             value="{g.logentry_freq_idx$','$g.logentry_call_idx$','$g.logentry_qth_idx}">
+</mvfunction>
+
+
+#################################################################
+<mvfunction name="list_entries" standardoutputlevel="">
+
+
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+
+   *******************************************************
+   * if the account doesn't exist, display main index page
+   *******************************************************
+   <mvif expr="{not fexists(g.acct_dir)}">
+      <mvassign name="account" value="">
+      <mvassign name="logbook" value="">
+      <mvdo file="main.mvc">
+      <mvexit>
+   </mvif>
+
+
+   **********************************************************
+   * if the logbook doesn't exist, display account index page
+   **********************************************************
+   <mvif expr="{not fexists(logentry_dbf)}">
+   <mveval expr="{logentry_dbf$' doesn\'t exist.'}">
+      <mvassign name="logbook" value="">
+      <mvdo file="main.mvc">
+      <mvexit>
+   </mvif>
+
+
+   ******************************************
+   * Read the account and logbook config info
+   ******************************************
+   <mvdo file="user.mvc" name="dummy" value="{read_userconfig()}">
+   <mvassign name="dummy" value="{read_logconfig()}">
+  
+   <mvif expr="{not g.sortby}">
+      <mvassign name="g.sortby" value="{cfg_sortby}">
+   </mvif>
+
+   <mvif expr="{not g.sortorder}">
+      <mvassign name="g.sortorder" value="{cfg_sortorder}">
+   </mvif>
+
+
+   
+   <mvif expr="{sortby eq 'entry'}">
+      <mvassign name="idxfile" value="">
+   <mvelse><mvif expr="{sortby eq 'call'}">
+      <mvassign name="idxfile" value="{g.logentry_call_idx}">
+   <mvelse><mvif expr="{sortby eq 'freq'}">
+      <mvassign name="freqsort" value="1">
+      <mvassign name="idxfile" value="{g.logentry_freq_idx}">
+   <mvelse><mvif expr="{sortby eq 'qth'}">
+      <mvassign name="idxfile" value="{g.logentry_qth_idx}">
+   </mvif></mvif></mvif></mvif>
+
+   <mvopen name      = "countries_db"
+           database = "{g.iso3166_1_dbf}"
+           indexes  = "{g.iso3166_1_code3_idx}">
+
+   <mvopen name      = "logentry_db"
+           database = "{g.logentry_dbf}"
+           indexes  = "{idxfile}">
+
+   <mvif expr="{sortorder ne 'D'}">
+      <mvgo name="logentry_db" row="top">
+      <mvassign name="skipstep" value="1">
+   <mvelse>
+      <mvgo name="logentry_db" row="bottom">
+      <mvassign name="skipstep" value="-1">
+   </mvif>
+
+   <mvassign name="l.curfreq" value="0">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title><mveval expr="{g.log_name}"></title>
+         <style type="text/css">
+            TD { font-family: monospace; padding-left: 5; padding-right: 5 }
+         </style>
+         <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<style>
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+</style>
+
+      </head> 
+      <body bgcolor="#ffffaf" background="{g.bg_url}">
+<div id="fb-root"></div>
+<script async defer src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v13.0"></script>
+
+   <center>
+   <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+   <hr/>
+   [<a href="main.mvc">Main Index</a>]
+   [<a href="{'main.mvc?account='$account}">Logbook Index</a>]
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook}">Log In</a>]
+   <mvif expr="{allow_user_create}">
+      [<a href="admin.mvc?action=newaccount&mode=user">New Account</a>]
+   </mvif>
+
+   <h3><i><mveval expr="{g.page_title}"></i></h3>
+   <h1><mveval expr="{g.log_name}"></h1>
+   <mvif expr="{g.subtitle}">
+      <h3><mveval expr="{g.subtitle}"></h3>
+   </mvif>
+</center><mveval expr="{g.blurb}"><br/>
+   <hr/>
+   <div  class="fb-like" data-href="{'http://mesamike.org/radio/dxlogbook/main.mvc?account='$account$'&logbook='$logbook}" data-layout="standard" data-action="like" data-show-faces="false" data-share="true"></div>
+
+   <mvif expr="{g.tally}">
+      <hr/><div align="left">
+      <mvopen name     = "tally_db"
+              database = "{g.tally_dbf}"
+              indexes  = "{g.tally_idx}">
+      <mvfind name="tally_db" value="grandtotal_" exact="EXACT">
+      <mveval expr="{'Logging Stats - Stations: '$tally_db.d.count$' | '}">
+      <mvfind name="tally_db" value="countries_" exact="EXACT">
+      <mveval expr="{'Countries: '$tally_db.d.count$' | '}">
+      <mvfind name="tally_db" value="states_" exact="EXACT">
+      <mveval expr="{'States (USA): '$tally_db.d.count$' | '}">
+      <mvfind name="tally_db" value="provinces_" exact="EXACT">
+      <mveval expr="{'Provinces (CAN): '$tally_db.d.count$' | '}">
+      <mvfind name="tally_db" value="estados_" exact="EXACT">
+      <mveval expr="{'Estados (MEX): '$tally_db.d.count$' | '}">
+      <mvfind name="tally_db" value="CUB_" exact="EXACT">
+      <mveval expr="{'Cubans: '$tally_db.d.count}">
+      <mvclose name = "tally_db">
+      </div>
+   </mvif>
+   <hr/>
+   <p></p>
+   <center>
+   Sort by: 
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=freq&sortorder=A'}">Frequency</a>]
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=call&sortorder=A'}">Name/Call</a>]
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=qth&sortorder=A'}">Location</a>]
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'}">Most Recent</a>]
+   <p></p>
+
+   <table><tr><td>
+   <table align="center">
+   <mvwhile expr="{not logentry_db.d.eof}">
+      <tr>
+         <td valign="top" align="right">
+            <mvif expr="{freqsort}">
+               <mvif expr="{logentry_db.d.freq ne l.curfreq}">
+                  <mvassign name="l.curfreq" value="{logentry_db.d.freq}">
+                  <b><mveval expr="{logentry_db.d.freq + 0.0}"></b>
+               </mvif>
+            <mvelse>
+               <b><mveval expr="{logentry_db.d.freq + 0.0}"></b>
+            </mvif>
+         </td>
+         <td valign="top" nowrap><b><mveval expr="{logentry_db.d.station}"></b></td>
+         <mvfind name="countries_db" value="{toupper(logentry_db.d.country)}">
+         <mvif expr="{not countries_db.d.eof}">
+            <td valign="top"><div class="tooltip"><b><mveval expr="{logentry_db.d.country}"></b><span class="tooltiptext"><mveval expr="{countries_db.d.cntry}"></span></div></td>
+         <mvelse>
+               <td valign="top"><b><mveval expr="{logentry_db.d.country}"></b></td>
+         </mvif>
+         <td valign="top"><b><mveval expr="{logentry_db.d.state}"></b></td>
+         <td valign="top"><b><mveval expr="{logentry_db.d.locality}"></b> -
+            <mveval expr="{logentry_db.d.date}">
+            <mveval expr="{logentry_db.d.time}"> -
+            <mveval expr="{logentry_db.d.comments}">
+            <mvif expr="{g.logtype eq 'bcdx'}">
+               <mvif expr="{logentry_db.d.entrytype eq 'N'}">
+                  (<b>New</b><mvif expr="{g.tally}"> - <mveval expr="{logentry_db.d.tally}"></mvif>)
+               </mvif>
+               <mvif expr="{logentry_db.d.entrytype eq 'T'}">
+                  (<b>Tentative</b>)
+               </mvif>
+               <mvif expr="{logentry_db.d.entrytype eq 'U'}">
+                  (<b>Unidentified</b>)
+               </mvif>
+               <mvif expr="{logentry_db.d.entrytype eq 'R'}">
+                  (<b>Relog</b> - <mveval expr="{logentry_db.d.reason}">)
+               </mvif>
+            </mvif>
+         </td>        
+      </tr>
+      <mvskip name="logentry_db" rows="{skipstep}">
+   </mvwhile>
+   </table></td>
+   <td valign="top" >
+<!--  stupid Facebook comments widget doesn't work....
+      <div class="fb-comments"
+         data-href="{'http://mesamike.org/radio/dxlogbook/main.mvc?account='$account$'&logbook='$logbook}" 
+         data-width="200"
+         data-numposts="25"
+         data-order-by="reverse_time">
+      </div>
+-->
+   </td>
+   </tr>
+</table>
+</center>
+
+</body></html>
+   <mvclose name="logentry_db">
+   <mvclose name="countries_db">
+</mvfunction>
+
+
+
+##################################################################
+<mvfunction name="create_logbookfiles" standardoutputlevel="">
+   <mvif expr="{(not logbook) or (not account)}">
+      <mvfuncreturn value=""> 
+   </mvif>
+
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+   <mvif expr="{(not fexists(acct_dir)) or (fexists(g.logentry_dbf))}">
+      <mvfuncreturn value="">
+   </mvif>
+
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="create_logbookfiles">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="account,logbook,session_id,file,function,parameters">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+   <mvcreate name     = "logentry_db"
+             database = "{g.logentry_dbf}"
+             fields   = "freq        number(10.3),
+                         station     char(40),
+                         country     char(40),
+                         state       char(20),
+                         locality    char(40),
+                         date        char(20),
+                         time        char(15),
+                         entrytype   char(2),
+                         reason      char(40),
+                         comments    memo,
+                         tally       char(30),
+                         qsl_rec     number(10),
+                         audiolink   char(80),
+                         audlnktype  char(2)">
+
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_call_idx}"
+                expr      = "{logentry_db.d.station}"
+                flags     = "ascending">
+
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_freq_idx}"
+                expr      = "{logentry_db.d.freq}"
+                flags     = "ascending">
+
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_qth_idx}"
+                expr      = "{logentry_db.d.country$'_'$logentry_db.d.state$'_'$logentry_db.d.locality}"
+                flags     = "ascending">
+
+   <mvclose name = "logentry_db">
+</mvfunction>
+
+
+<mvfunction name="create_tally_db" standardoutputlevel=""> 
+   <mvcreate name     = "tally_db"
+             database = "{g.tally_dbf}"
+             fields   = "count       number(10),
+                         country     char(40),
+                         state       char(20)">
+   <mvmakeindex name      = "tally_db"
+                indexfile = "{g.tally_idx}"
+                expr      = "{tally_db.d.country$'_'$tally_db.d.state}"
+                flags     = "ascending">
+   <mvassign name="tally_db.d.country" value="grandtotal">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="canada">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="mexico">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="unitedstates">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="countries">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="states">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="estados">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+   <mvassign name="tally_db.d.country" value="provinces">
+   <mvassign name="tally_db.d.state" value="">
+   <mvassign name="tally_db.d.count" value="{0}">
+   <mvadd name="tally_db">
+
+   <mvclose name = "tally_db">
+
+</mvfunction>
+
+##################################################################
+<mvfunction name="delete_logbookfiles" standardoutputlevel="">
+   <mvif expr="{(not logbook) or (not account)}">
+      <mvfuncreturn value=""> 
+   </mvif>
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+
+   <mvlockfile file="{g.logentry_dbf}">
+   <mvlockfile file="{g.logentry_dbt}">
+   <mvlockfile file="{g.logentry_freq_idx}">
+   <mvlockfile file="{g.logentry_call_idx}">
+   <mvlockfile file="{g.logentry_qth_idx}">
+
+
+   <mvassign name="dummy" value="{fdelete(g.logentry_dbf)}">
+   <mvassign name="dummy" value="{fdelete(g.logentry_dbt)}">
+   <mvassign name="dummy" value="{fdelete(g.logentry_freq_idx)}">
+   <mvassign name="dummy" value="{fdelete(g.logentry_call_idx)}">
+   <mvassign name="dummy" value="{fdelete(g.logentry_qth_idx)}">
+
+
+   </mvlockfile>
+   </mvlockfile>
+   </mvlockfile>
+   </mvlockfile>
+   </mvlockfile>
+</mvfunction>
+
+
+
+
+
+#################################################################
+<mvfunction name="new_entry" standardoutputlevel="">
+   * We can also use these for editing an existing entry
+   <mvif expr="{request_method eq 'POST'}">
+      <mveval expr="{get_new_entry()}">
+   <mvelse>
+      <mveval expr="{put_new_entry()}">
+   </mvif>
+</mvfunction>
+
+<mvfunction name="put_new_entry" standardoutputlevel="">
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="put_new_entry">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="action,account,logbook,logentry,sortby,sortorder,session_id,file,function,parameters,f_tally">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{read_logconfig()}">
+
+   * Do this if we're editing an existing entry
+   <mvif expr="{action eq 'editentry'}">
+      <mvif expr="{not logentry}">
+         <mveval expr="{log_admin()}">
+         <mvexit>
+      </mvif>
+      <mvassign name="dummy" value="{assign_logbookfiles()}">
+      <mvopen name="logentry_db" database="{logentry_dbf}" indexes="">
+      <mvgo name="logentry_db" row="{logentry}">
+      <mvif expr="{logentry_db.d.eof}">
+         <mvclose name="logentry_db">
+         <mveval expr="{log_admin()}">
+         <mvexit>
+      </mvif>
+      <mvassign name="l.freq" value="{logentry_db.d.freq}">
+      <mvassign name="l.station" value="{logentry_db.d.station}">
+      <mvassign name="l.country" value="{logentry_db.d.country}">
+      <mvassign name="l.state" value="{logentry_db.d.state}">
+      <mvassign name="l.locality" value="{logentry_db.d.locality}">
+      <mvassign name="l.date" value="{logentry_db.d.date}">
+      <mvassign name="l.time" value="{logentry_db.d.time}">
+      <mvassign name="l.type" value="{logentry_db.d.entrytype}">
+      <mvassign name="l.comments" value="{logentry_db.d.comments}">
+      <mvif expr="{g.logtype eq 'bcdx'}">
+         <mvassign name="l.reason" value="{logentry_db.d.reason}">
+         <mvassign name="f_tally" value="{logentry_db.d.tally}">
+         <mvif expr="{l.type eq 'N'}">
+            <mvassign name="nchecked" value="checked">
+         <mvelse><mvif expr="{l.type eq 'T'}">
+            <mvassign name="tchecked" value="checked">
+         <mvelse><mvif expr="{l.type eq 'R'}">
+            <mvassign name="rchecked" value="checked">
+         </mvif></mvif></mvif>
+      </mvif>
+      <mvclose name="logentry_db">
+   <mvelse>
+      <mvassign name="nchecked" value="checked">
+   </mvif>
+
+   <mvdo file="user.mvc" name="dummy" value="{read_userconfig()}">
+   <miva standardoutputlevel="text,html">
+   <html>
+      <head>
+         <title>DX Logbook Entry Form</title>
+         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      </head>
+   <body bgcolor="#ffffaf" background="{g.bg_url}"><center>
+      <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+      <hr>
+      <h1>New DX Logbook Entry</h1>
+      <form action="main.mvc" method="POST">
+      <mvhide fields="{browse_state}">
+      <table align="center">
+         <tr>
+            <td></td>
+            <td><input type="checkbox"  name="f_copy" value="copy"> Copy this entry to 
+               <select name="f_copydest"><mveval expr="{copylist()}"></select> 
+            </td>
+         <tr>
+         <tr>
+            <td align="right"><b>Frequency/Channel:</b></td>
+            <td><input type="text" maxlength="10" size="60" name="f_freq" value="{l.freq}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>Station name/Call letters:</b></td>
+            <td><input type="text" maxlength="40" size="60" name="f_station" value="{l.station}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>Country:</b></td>
+            <td><input type="text" maxlength="40" size="60" name="f_country" value="{l.country}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>State/Province:</b></td>
+            <td><input type="text" maxlength="20" size="60" name="f_state" value="{l.state}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>Locality:</b></td>
+            <td><input type="text" maxlength="40" size="60" name="f_locality" value="{l.locality}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>Date:</b></td>
+            <td><input type="text" maxlength="20" size="60" name="f_date" value="{l.date}"></td>
+         <tr>
+         <tr>
+            <td align="right"><b>Time:</b></td>
+            <td><input type="text" maxlength="15" size="60" name="f_time" value="{l.time}"></td>
+         <tr>
+         <mvif expr="{g.logtype eq 'bcdx'}">
+         <tr><td align=right><b>Type of logging:</b></td>
+            <td align="left">
+            <mveval expr="{'[<input type="radio" name="f_type" value="N" '$nchecked$'>'}">New]
+            <mveval expr="{'[<input type="radio" name="f_type" value="T" '$tchecked$'>'}">Tentative]
+            <mveval expr="{'[<input type="radio" name="f_type" value="U" '$tchecked$'>'}">Unidentified]
+            <mveval expr="{'[<input type="radio" name="f_type" value="R" '$rchecked$'>'}">Relog]
+            <b>Relog Reason:</b> <input type="text" name="f_reason" value="{l.reason}">
+         <tr>
+         </mvif>
+         <tr>
+            <td align="right"><b>Comments:</b></td>
+            <td><textarea name="f_comments" rows="10" cols="60" wrap="virtual"><mveval expr="{l.comments}"></textarea></td>
+         <tr>
+         <tr>
+            <td colspan="2" align="center"><input type="submit" value="Submit"></td>
+         </tr>
+      </table>
+      </form>
+</mvfunction>
+
+##############################################################################
+Build list of logbook options for entry copy select used above 
+<mvfunction name="copylist" standardoutputlevel="">
+   <mvopen name="logs_db" database="{logs_dbf}" indexes="{logorder_idx}">
+   <mvwhile expr="{not logs_db.d.eof}">
+      <mveval expr="{'<option value=' $ logs_db.d.log_id $ '>' $ logs_db.d.logname $ '</option>'}">
+      <mvskip name="logs_db">
+   </mvwhile>
+   <mvclose name="logs_db">
+</mvfunction>
+      
+
+##############################################################################
+<mvfunction name="get_new_entry">
+   <mvif expr="{logbook and account}">
+      <mvassign name="dummy" value="{assign_logbookfiles()}">
+      <mvif expr="{fexists(g.logentry_dbf)}">
+         <mvassign name="dummy" value="{read_logconfig()}">
+         <mvassign name="file" value="logbook.mvc">
+         <mvassign name="function" value="get_new_entry">
+         <mvassign name="parameters" value=""> 
+         <mvassign name="browse_state" 
+            value="account,logbook,logentry,sortby,sortorder,session_id,file,function,parameters,f_freq, f_station,f_country,f_state,f_locality,f_date,f_time,f_comments,f_type,f_reason,f_tally">
+         <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+         <mvlockfile file="{g.logentry_dbf}">
+         <mvlockfile file="{g.logentry_call_idx}">
+         <mvlockfile file="{g.logentry_freq_idx}">
+         <mvlockfile file="{g.logentry_qth_idx}">
+
+
+         <mvif expr="{g.tally}">
+            <mvif expr="{action eq 'editentry'}">
+               <mvassign name="tally_text" value="{f_tally}">
+            <mvelse><mvif expr="{f_type eq 'N'}">
+               <mvassign name="tally_text" value="{tally()}">
+            </mvif></mvif>
+         </mvif>
+
+         <mvopen name      = "logentry_db"
+                 database = "{g.logentry_dbf}"
+                 indexes  = "{all_idx}">
+
+         <mvif expr="{action eq 'editentry'}">
+            <mvgo name="logentry_db" row="{logentry}">
+         </mvif>
+
+         <mvassign name="dummy" value="{copy_to_db()}">
+
+         <mvif expr="{action eq 'editentry'}">
+            <mvupdate name="logentry_db">
+         <mvelse>
+            <mvadd name="logentry_db">
+         </mvif>
+         <mvclose name="logentry_db">
+         </mvlockfile>
+         </mvlockfile>
+         </mvlockfile>
+         </mvlockfile>
+
+
+         <mvif expr="{f_copy}">
+            <mvassign name="logbook_save" value="{logbook}">
+            <mvassign name="logbook" value="{f_copydest}">
+            <mvassign name="dummy" value="{assign_logbookfiles()}">
+            <mvlockfile file="{g.logentry_dbf}">
+            <mvlockfile file="{g.logentry_call_idx}">
+            <mvlockfile file="{g.logentry_freq_idx}">
+            <mvlockfile file="{g.logentry_qth_idx}">
+            <mvopen name      = "logentry_db"
+                    database = "{g.logentry_dbf}"
+                    indexes  = "{all_idx}">
+            <mvassign name="dummy" value="{copy_to_db()}">
+            <mvadd name="logentry_db"> 
+            <mvclose name="logentry_db">
+            </mvlockfile>
+            </mvlockfile>
+            </mvlockfile>
+            </mvlockfile>
+            <mvassign name="logbook" value="{logbook_save}">
+         </mvif>
+
+
+      </mvif>
+   </mvif>
+   <mveval expr="{log_admin()}">
+</mvfunction>
+
+#################################################################
+Put the log entry values into the database
+<mvfunction name="copy_to_db" standardoutputlevel="">
+   <mvassign name="logentry_db.d.freq"      value="{f_freq}">
+   <mvassign name="logentry_db.d.station"   value="{f_station}">
+   <mvassign name="logentry_db.d.country"   value="{f_country}">
+   <mvassign name="logentry_db.d.state"     value="{f_state}">
+   <mvassign name="logentry_db.d.locality"  value="{f_locality}">
+   <mvassign name="logentry_db.d.date"      value="{f_date}">
+   <mvassign name="logentry_db.d.time"      value="{f_time}">
+   <mvassign name="logentry_db.d.comments"  value="{f_comments}">
+   <mvassign name="logentry_db.d.entrytype" value="{f_type}">
+   <mvassign name="logentry_db.d.reason"    value="{f_reason}">
+   <mvassign name="logentry_db.d.tally"     value="{tally_text}">
+</mvfunction>
+
+
+
+
+#################################################################
+<mvfunction name="tally" standardoutputlevel="">
+
+
+   * The data base is already open if we're re-tallying
+   <mvif expr="{not g.retally}">
+      <mvopen name     = "tally_db"
+              database = "{g.tally_dbf}"
+              indexes  = "{g.tally_idx}">
+   </mvif>
+
+   <mvassign name="l.newstate" value="{0}">
+   <mvassign name="l.newprovince" value="{0}">
+   <mvassign name="l.newestado" value="{0}">
+   <mvassign name="l.newcountry" value="{0}">
+   # we only tally new logs, not relogs, unids or tentatives
+   <mvif expr="{f_type eq 'N'}">
+      # Update the grand total
+      <mvfind name="tally_db" value="grandtotal_" exact="EXACT">
+      <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+      <mvassign name="l.newtotal"  value="{tally_db.d.count}">
+      <mvupdate name="tally_db">
+
+      # update the Canada total
+      <mvif expr="{tolower(substring(f_country,1,3)) eq 'can'}">
+         <mvfind name="tally_db" value="canada_" exact="EXACT">
+         <mvif expr="{not tally_db.d.count}">
+            <mvassign name="l.newcountry" value="{1}">
+         </mvif>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.cantotal"  value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+         # update the province total
+         <mvfind name="tally_db" value="{'can_'$f_state}" exact>
+         <mvif expr="{tally_db.d.eof}">
+            <mvassign name="l.newprovince" value="{1}">
+            <mvassign name="tally_db.d.country" value="can">
+            <mvassign name="tally_db.d.state" value="{f_state}">
+            <mvassign name="tally_db.d.count" value="{1}">
+            <mvadd name="tally_db">
+         <mvelse>
+            <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+            <mvupdate name="tally_db">
+         </mvif>
+         <mvassign name="l.statetotal"  value="{tally_db.d.count}">
+
+      # update the Mexico total
+      <mvelse><mvif expr="{tolower(substring(f_country,1,3)) eq 'mex'}">
+         <mvfind name="tally_db" value="mexico_" exact>
+         <mvif expr="{not tally_db.d.count}">
+            <mvassign name="l.newcountry" value="{1}">
+         </mvif>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.mextotal"  value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+         # update the estado total
+         <mvfind name="tally_db" value="{'mex_'$f_state}" exact>
+         <mvif expr="{tally_db.d.eof}">
+            <mvassign name="l.newestado" value="{1}">
+            <mvassign name="tally_db.d.country" value="mex">
+            <mvassign name="tally_db.d.state" value="{f_state}">
+            <mvassign name="tally_db.d.count" value="{1}">
+            <mvadd name="tally_db">
+         <mvelse>
+            <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+            <mvupdate name="tally_db">
+         </mvif>
+         <mvassign name="l.statetotal"  value="{tally_db.d.count}">
+
+      # update the USA total
+      <mvelse><mvif expr="{tolower(substring(f_country,1,3)) eq 'usa'}">
+         <mvfind name="tally_db" value="unitedstates_" exact>
+         <mvif expr="{not tally_db.d.count}">
+            <mvassign name="l.newcountry" value="{1}">
+         </mvif>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.usatotal"  value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+
+         # update the state total
+         <mvfind name="tally_db" value="{'usa_'$f_state}" exact>
+         <mvif expr="{tally_db.d.eof}">
+            <mvassign name="l.newstate" value="{1}">
+            <mvassign name="tally_db.d.country" value="usa">
+            <mvassign name="tally_db.d.state" value="{f_state}">
+            <mvassign name="tally_db.d.count" value="{1}">
+            <mvadd name="tally_db">
+         <mvelse>
+            <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+            <mvupdate name="tally_db">
+         </mvif>
+         <mvassign name="l.statetotal"  value="{tally_db.d.count}">
+
+      # update the other country total
+      <mvelse>
+         <mvfind name="tally_db" value="{f_country$'_'}" exact>
+         <mvif expr="{tally_db.d.eof}">
+            <mvassign name="l.newcountry" value="{1}">
+            <mvassign name="tally_db.d.country" value="{f_country}">
+            <mvassign name="tally_db.d.state" value="">
+            <mvassign name="tally_db.d.count" value="{1}">
+            <mvadd name="tally_db">
+         <mvelse>
+            <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+            <mvupdate name="tally_db">
+         </mvif>
+      </mvif> #usa
+      </mvif> #mex
+      </mvif> #can
+
+      <mvif expr="{l.newcountry}">
+         <mvfind name="tally_db" value="countries_" exact>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.numcountries" value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+      </mvif>
+        
+      <mvif expr="{l.newprovince}">
+         <mvfind name="tally_db" value="provinces_" exact>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.numstates" value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+      </mvif>
+
+      <mvif expr="{l.newestado}">
+         <mvfind name="tally_db" value="estados_" exact>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.numstates" value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+      </mvif>
+
+      <mvif expr="{l.newstate}">
+         <mvfind name="tally_db" value="states_" exact>
+         <mvassign name="tally_db.d.count" value="{tally_db.d.count + 1}">
+         <mvassign name="l.numstates" value="{tally_db.d.count}">
+         <mvupdate name="tally_db">
+      </mvif>
+
+   </mvif> # new log
+
+// why did I put this here?
+<mvcomment>
+   * The re-tally routine will close the database if we're re-tallying
+   <mvif expr="{not g.retally}">
+      <mvclose name="logentry_db">
+   </mvif>
+</mvcomment>
+
+
+   * put the database back the way we found it if re-tallying
+   <mvif expr="{g.retally}">
+      <mvgo name="logentry_db" row="{g.currec}">
+   </mvif>
+
+   <mvassign name="text" value="{'#'$newtotal}">
+
+   <mvif expr="{l.newcountry}">
+      <mvassign name="text" value="{text$', Country #'$l.numcountries}">
+   </mvif>
+   
+   <mvif expr="{tolower(substring(f_country,1,3)) eq 'can'}">
+      <mvassign name="text" value="{text$', Canada #'$l.cantotal}">
+      <mvassign name="text" value="{text$', '$f_state$' #'$l.statetotal}">
+         <mvif expr="{l.newprovince}">
+            <mvassign name="text" value="{text$', Province #'$l.numstates}">
+         </mvif>
+   </mvif>
+
+   <mvif expr="{tolower(substring(f_country,1,3)) eq 'mex'}">
+      <mvassign name="text" value="{text$', Mexico #'$l.mextotal}">
+      <mvassign name="text" value="{text$', '$f_state$' #'$l.statetotal}">
+   </mvif>
+
+   <mvif expr="{tolower(substring(f_country,1,3)) eq 'usa'}">
+      <mvassign name="text" value="{text$', '$f_state$' #'$l.statetotal}">
+   </mvif>
+
+   <mvfuncreturn value="{text}">
+</mvfunction>
+
+#################################################################
+<mvfunction name="log_admin" standardoutputlevel="">
+   ******************************************
+   * Read the account and logbook config info
+   ******************************************
+
+   <mvdo file="user.mvc" name="dummy" value="{read_userconfig()}">
+   <mvassign name="dummy" value="{read_logconfig()}">
+
+   <mvif expr="{not g.sortby}">
+      <mvassign name="g.sortby" value="{cfg_sortby}">
+   </mvif>
+
+   <mvif expr="{not g.sortorder}">
+      <mvassign name="g.sortorder" value="{cfg_sortorder}">
+   </mvif>
+
+
+
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="log_admin">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" 
+      value="action,account,logbook,session_id,file,function,parameters">
+
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+
+   <mvif expr="{sortby eq 'entry'}">
+      <mvassign name="idxfile" value="">
+   <mvelse><mvif expr="{sortby eq 'call'}">
+      <mvassign name="idxfile" value="{g.logentry_call_idx}">
+   <mvelse><mvif expr="{sortby eq 'freq'}">
+      <mvassign name="idxfile" value="{g.logentry_freq_idx}">
+   <mvelse><mvif expr="{sortby eq 'qth'}">
+      <mvassign name="idxfile" value="{g.logentry_qth_idx}">
+   </mvif></mvif></mvif></mvif>
+
+   <mvif expr="{not fexists(g.logentry_call_idx)}">
+   <mvlockfile file="{g.logentry_dbf}">
+   <mvopen name="logentry_db" database="{g.logentry_dbf}">
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_call_idx}"
+                expr      = "{logentry_db.d.station}"
+                flags     = "ascending">
+   <mvclose name="logentry_db">
+   </mvlockfile>
+   </mvif>
+
+   
+   <mvif expr="{not fexists(g.logentry_freq_idx)}">
+   <mvlockfile file="{g.logentry_dbf}">
+   <mvopen name="logentry_db" database="{g.logentry_dbf}">
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_freq_idx}"
+                expr      = "{logentry_db.d.freq}"
+                flags     = "ascending">
+   <mvclose name="logentry_db">
+   </mvlockfile>
+   </mvif>
+
+   <mvif expr="{not fexists(g.logentry_qth_idx)}">
+   <mvlockfile file="{g.logentry_dbf}">
+   <mvopen name="logentry_db" database="{g.logentry_dbf}">
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_qth_idx}"
+                expr      = "{logentry_db.d.country$'_'$logentry_db.d.state$'_'$logentry_db.d.locality}"
+                flags     = "ascending">
+   <mvclose name="logentry_db">
+   </mvlockfile>
+   </mvif>
+
+   <mvdo file="user.mvc" name="dummy" value="{assign_userfiles()}">
+
+   <mvopen name      = "countries_db"
+           database = "{g.iso3166_1_dbf}"
+           indexes  = "{g.iso3166_1_code3_idx}">
+
+   <mvopen name      = "logentry_db"
+           database = "{g.logentry_dbf}"
+           indexes  = "{idxfile}">
+
+   <mvif expr="{sortorder ne 'D'}">
+      <mvgo name="logentry_db" row="top">
+      <mvassign name="skipstep" value="1">
+   <mvelse>
+      <mvgo name="logentry_db" row="bottom">
+      <mvassign name="skipstep" value="-1">
+   </mvif>
+
+   <mvassign name="l.curfreq" value="0">
+
+   <miva standardoutputlevel="text, html">
+   <html>
+      <head>
+         <title><mveval expr="{g.log_name}"></title>
+         <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+         <style type="text/css">
+            TD { font-family: monospace; padding-left: 5; padding-right: 5 }
+         </style>
+<style>
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  left: 105%;
+}
+
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+</style>
+
+   </head>
+   <body bgcolor="#ffffaf" background="{g.bg_url}"><center>
+   <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+   <hr>
+   [<a href="{'main.mvc?action=logconfig&account='$account$'&logbook='$logbook$'&session_id='$session_id}">Configure</a>]
+   [<a href="{'main.mvc?action=newentry&account='$account$'&logbook='$logbook$'&session_id='$session_id}">New Entry</a>]
+   <mvif expr="{g.tally}">
+      [<a href="{'main.mvc?action=retally&account='$account$'&logbook='$logbook$'&session_id='$session_id}">Recalculate Tally Stats</a>]
+   </mvif>
+   [<a href="{'main.mvc?action=acctadmin&account='$account$'&session_id='$session_id}">Logbook Index</a>]
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook}">Log Out</a>]
+   <h3><i><mveval expr="{g.page_title}"></i></h3>
+   <h1><mveval expr="{g.log_name}"></h1>
+   <mvif expr="{g.subtitle}">
+      <h3><mveval expr="{g.subtitle}"></h3>
+   </mvif>
+   </center><mveval expr="{blurb}"><center><br/><br/>
+   Sort by: 
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=freq&sortorder=A'$'&session_id='$session_id}">Frequency</a>]
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=call&sortorder=A'$'&session_id='$session_id}">Name/Call</a>]
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=qth&sortorder=A'$'&session_id='$session_id}">Location</a>]
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=entryi&sortorder=D'$'&session_id='$session_id}">Most Recent</a>]
+   <hr>
+   <blockquote>
+   <table align="center">
+   <mvwhile expr="{not logentry_db.d.eof}">
+      <tr>
+         <td valign="top">
+            [<a href="{'main.mvc?action=deleteentry&account='$account$'&logbook='$logbook$'&logentry='$logentry_db.d.recno$'&session_id='$session_id$'&sortby='$sortby$'&sortorder='$sortorder}">Delete</a>]
+         </td>
+         <td valign="top">
+            [<a href="{'main.mvc?action=editentry&account='$account$'&logbook='$logbook$'&logentry='$logentry_db.d.recno$'&session_id='$session_id$'&sortby='$sortby$'&sortorder='$sortorder}">Edit</a>]
+         </td>
+         <td valign="top" align="right">
+            <mvif expr="{freqsort}">
+               <mvif expr="{logentry_db.d.freq ne l.curfreq}">
+                  <mvassign name="l.curfreq" value="{logentry_db.d.freq}">
+                  <b><mveval expr="{logentry_db.d.freq + 0.0}"></b>
+               </mvif>
+            <mvelse>
+               <b><mveval expr="{logentry_db.d.freq + 0.0}"></b>
+            </mvif>
+          </td>
+         <td valign="top" nowrap><b><mveval expr="{logentry_db.d.station}"></b></td>
+         <mvfind name="countries_db" value="{toupper(logentry_db.d.country)}">
+         <mvif expr="{not countries_db.d.eof}">
+            <td valign="top"><div class="tooltip"><b><mveval expr="{logentry_db.d.country}"></b><span class="tooltiptext"><mveval expr="{countries_db.d.cntry}"></span></div></td>
+         <mvelse>
+               <td valign="top"><b><mveval expr="{logentry_db.d.country}"></b></td>
+         </mvif>   
+         <td valign="top"><b><mveval expr="{logentry_db.d.state}"></b></td>
+         <td valign="top"><b><mveval expr="{logentry_db.d.locality}"></b> -
+             <mveval expr="{logentry_db.d.date}">
+             <mveval expr="{logentry_db.d.time}"> - 
+             <mveval expr="{logentry_db.d.comments}">
+             <mvif expr="{g.logtype eq 'bcdx'}">
+                <mvif expr="{logentry_db.d.entrytype eq 'N'}">
+                   (<b>New</b><mvif expr="{g.tally}"> - <mveval expr="{logentry_db.d.tally}"></mvif>)
+                </mvif>
+                <mvif expr="{logentry_db.d.entrytype eq 'T'}">
+                   (<b>Tentative</b>)
+                </mvif>
+                <mvif expr="{logentry_db.d.entrytype eq 'U'}">
+                   (<b>Unidentified</b>)
+                </mvif>
+                <mvif expr="{logentry_db.d.entrytype eq 'R'}">
+                   (<b>Relog</b> - <mveval expr="{logentry_db.d.reason}">)
+                </mvif>
+             </mvif>
+          </td>
+      </tr>
+      <mvskip name="logentry_db" rows="{skipstep}">
+   </mvwhile>
+   </table></blockquote></center></body></html>
+   <mvclose name="logentry_db">
+   <mvclose name="countries_db">
+</mvfunction>
+
+
+<mvfunction name="delete_entry" standardoutputlevel="">
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="delete_entry">
+   <mvassign name="parameters" value=""> 
+   <mvassign name="browse_state" value="action,account,session_id,logbook,logentry,file,function,parameters">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+   *********************************************************
+   * give user a second chance before deleting the entry!
+   *********************************************************
+   <mvif expr="{request_method ne 'POST'}">
+      <mvopen name="logentry_db" database="{g.logentry_dbf}" indexes="{g.all_idx}">
+      <mvgo name="logentry_db" row="{logentry}">
+      <miva standardoutputlevel="text,html">
+      <html>
+         <head>
+            <title>Delete DX Logbook Entry</title>
+         </head>
+         <body bgcolor="#ffffaf" background="{g.bg_url}"> 
+            <center>
+               <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+               <h1>You're about to delete the following entry:</h1> 
+               <h3><i><mveval expr="{logentry_db.d.freq$' - '$logentry_db.d.station$' - '$logentry_db.d.country$' - '$logentry_db.d.state$' - '$logentry_db.d.locality}"></i></h3>
+               <font color="red">The record will be permanently destroyed.</font>
+               <p>Are you sure?
+               <p>
+               <form action="main.mvc" method="POST">
+                  <mvhide fields="{browse_state}">
+                  <input type="submit" name="do_it" value="proceed" >
+                  <input type="submit" name="do_it" value="cancel">
+               </form>
+            </center>
+         </body>
+      </html>
+   <mvelse>
+      <mvif expr="{do_it eq 'proceed'}">
+         <mvlockfile file="{logentry_dbf}">
+         <mvlockfile file="{logentry_freq_idx}">
+         <mvlockfile file="{logentry_call_idx}">
+         <mvlockfile file="{logentry_qth_idx}">
+         <mvopen name="logentry_db" database="{logentry_dbf}" indexes="{all_idx}">
+         <mvgo name="logentry_db" row="{logentry}">
+         <mvdelete name="logentry_db">
+         <mvpack name="logentry_db">
+         <mvclose name="logentry_db">
+         </mvlockfile></mvlockfile></mvlockfile></mvlockfile>
+      </mvif>
+      <mveval expr="{log_admin()}">
+   </mvif>
+</mvfunction>
+
+##########################################################################
+<mvfunction name="log_config" standardoutputlevel="">
+   <mvif expr="{request_method ne 'POST'}"> 
+      <mvassign name="dummy" value="{put_logconfig()}">
+   <mvelse>
+      <mvassign name="dummy" value="{get_logconfig()}">
+   </mvif>
+</mvfunction>
+
+
+<mvfunction name="put_logconfig" standardoutputlevel="">
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="put_logconfig">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="file,function,parameters,action,account,logbook,session_id">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+   <mvassign name="dummy" value="{read_logconfig()}">
+   <mvassign name="{'l.tally_'$g.tally$'_selected'}" value="selected">
+   <mvassign name="{'l.'$g.cfg_sortby$'_selected'}" value="selected">
+   <mvassign name="{'l.'$g.cfg_sortorder$'_selected'}" value="selected">
+      **********************
+      * Send the config form
+      **********************
+      <miva standardoutputlevel="text,html">
+      <html>
+         <head>
+            <title>DX Logbook - Log Configuration</title>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+         </head>
+         <body bgcolor="#ffffaf" background="{g.bg_url}">
+            <center>
+               <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+               <hr>
+               <h1>Log Configuration</h1>
+               <form action="main.mvc" method="POST">
+               <mvhide fields="action,account,logbook,session_id">
+               <table>
+                  <tr>
+                     <th>Background Image URL:</th>
+                     <td><input type="text" name="f_bg_url" value="{g.bg_url}" size="40"></td>
+                  </tr>
+                  <tr>
+                     <th>Banner Image URL:</th>
+                     <td><input type="text" name="f_banner_url" value="{g.banner_url}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Banner Link URL:</th>
+                     <td><input type="text" name="f_banner_link" value="{g.banner_link}" size="40"></td>
+                  </tr>
+                   <tr>
+                     <th>Logbook Title:</th>
+                     <td><input type="text" name="f_log_name" value="{g.log_name}" size="100"></td>
+                  </tr>
+                   <tr>
+                     <th>Subtitle:</th>
+                     <td><input type="text" name="f_subtitle" value="{g.subtitle}" size="100"></td>
+                  </tr>
+                  <mvif expr="{g.logtype eq 'bcdx'}">
+                  <tr>
+                    <th>Automatic Tally:</th>
+                    <td>
+                       <select name="f_tally">
+                          <mveval expr="{'<option value="1" '$l.tally_1_selected$'>'}">Yes - keep stats on US States/Canada/Mexico stations logged</option>
+                          <mveval expr="{'<option value="0" '$l.tally_0_selected$'>'}">No Thanks - don't clutter my logbook with statistics!</option>
+                       </select>
+                    </td>
+                  </tr>
+                  </mvif>
+                  <tr>
+                     <th>Default Sorting:</th>
+                     <td>
+                        <select name="f_sortby" >
+                           <mveval expr="{'<option value="freq" '$l.freq_selected$'>'}">Sort by Frequency</option>
+                           <mveval expr="{'<option value="call" '$l.call_selected$'>'}">Sort by Call/Name</option>
+                           <mveval expr="{'<option value="qth" '$l.qth_selected$'>'}">Sort by Location</option>
+                           <mveval expr="{'<option value="entry" '$l.entry_selected$'>'}">Sort by Order of Entry</option>
+                        </select>
+                        <select name="f_sortorder" >
+                           <mveval expr="{'<option value="A" '$l.A_selected$'>'}">Ascending</option>
+                           <mveval expr="{'<option value="D" '$l.D_selected$'>'}">Descending</option>
+                        </select>  
+                     </td>
+                   </tr>
+                   <tr>
+                     <th>Logbook Description</th>
+                     <td><textarea name="f_comments" cols="80" rows="10" wrap="virtual"><mveval expr="{g.blurb}"></textarea></td>
+                  </tr>
+              </table>
+               <hr>
+               <input type="submit"  value="Submit">
+               </form>
+            </center>
+         </body>
+      </html>
+      <miva standardoutputlevel="">
+   <mvexit>
+</mvfunction>
+
+<mvfunction name="get_logconfig" standardoutputlevel="">
+      <mvassign name="file" value="logbook.mvc">
+      <mvassign name="function" value="get_logconfig">
+      <mvassign name="parameters" value="">
+      <mvassign name="browse_state" value="file,function,parameters,account,logbook,session_id,f_log_name,f_subtitle,f_banner_url,f_banner_link,f_bg_url,f_tally,f_sortby, f_sortorder,f_comments">
+      <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+      * make sure account exists
+      <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+      <mvfind name="accounts_db" value="{account}" exact="EXACT">
+      <mvif expr="{not accounts_db.d.eof}">
+      
+         * make sure logbook exists
+         <mvdo file="user.mvc" name="dummy" value="{assign_userfiles()}">
+         <mvopen name="logs_db" database="{logs_dbf}" indexes="{logs_idx$','$logorder_idx}">
+         <mvfind name="logs_db" value="{logbook}" exact="EXACT">
+         <mvif expr="{not logs_db.d.eof}">
+
+            * Logbook exists, update config info
+            <mvassign name="logs_db.d.banner_url" value="{f_banner_url}">
+            <mvassign name="logs_db.d.banner_lnk" value="{f_banner_link}">
+            <mvassign name="logs_db.d.bg_url" value="{f_bg_url}">
+            <mvassign name="logs_db.d.logname" value="{f_log_name}">
+            <mvassign name="logs_db.d.subtitle" value="{f_subtitle}">
+            <mvassign name="logs_db.d.blurb" value="{f_comments}">
+            <mvassign name="logs_db.d.sortby" value="{f_sortby}">
+            <mvassign name="logs_db.d.sortorder" value="{f_sortorder}">
+            <mvif expr="{logs_db.d.logtype eq 'bcdx'}">
+               <mvassign name="logs_db.d.tally" value="{f_tally}">
+            </mvif>
+            <mvupdate name="logs_db">
+         </mvif>
+         <mvclose name="logs_db">
+      </mvif>
+      <mvclose name="accounts_db">
+      <mvassign name="dummy" value="{read_logconfig()}">
+   <mvassign name="dummy" value="{log_admin()}">
+</mvfunction>
+
+<mvfunction name="read_logconfig" standardoutputlevel="">
+   * make sure account exists
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+   <mvfind name="accounts_db" value="{account}" exact="EXACT">
+   <mvif expr="{not accounts_db.d.eof}">
+
+      * make sure logbook exists
+      <mvdo file="user.mvc" name="dummy" value="{assign_userfiles()}">
+      <mvopen name="logs_db" database="{logs_dbf}" indexes="{logs_idx}">
+      <mvfind name="logs_db" value="{logbook}" exact="EXACT">
+      <mvif expr="{not logs_db.d.eof}">
+
+         * Logbook exists, read config info
+         <mvassign name="g.banner_url" value="{logs_db.d.banner_url}">
+         <mvassign name="g.banner_link" value="{logs_db.d.banner_lnk}">
+         <mvassign name="g.bg_url" value="{logs_db.d.bg_url}">
+         <mvassign name="g.log_name" value="{logs_db.d.logname}">
+         <mvassign name="g.subtitle" value="{logs_db.d.subtitle}">
+         <mvassign name="g.blurb" value="{logs_db.d.blurb}">
+         <mvassign name="g.cfg_sortby" value="{logs_db.d.sortby}">
+         <mvassign name="g.cfg_sortorder" value="{logs_db.d.sortorder}">
+         <mvassign name="g.logtype" value="{logs_db.d.logtype}">
+         <mvif expr="{g.logtype eq 'bcdx'}">
+            <mvassign name="g.tally" value="{logs_db.d.tally}">
+         </mvif>
+      <mvelse> * Logbook doesn't exist, fall back to account config
+         <mvdo file="user.mvc" name="dummy" value="{read_userconfig()}">
+      </mvif>
+      <mvclose name="logs_db">
+   <mvelse> * account doesn't exist, fall back to system default
+      <mvdo file="main.mvc" name="dummy" value="{read_config()}">
+   </mvif>
+   <mvclose name="accounts_db">
+</mvfunction>
+
+<mvfunction name="retally" standardoutputlevel="">
+   <mvassign name="file" value="logbook.mvc">
+   <mvassign name="function" value="retally">
+   <mvassign name="parameters" value="">
+   <mvassign name="browse_state" value="file,function,parameters,account,logbook,session_id">
+   <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
+
+   <mvassign name="g.retally" value="1">
+   <mvassign name="g.currec" value="1">
+   <mvassign name="dummy" value="{assign_logbookfiles()}">
+   <mvassign name="dummy" value="{read_logconfig()}">
+
+   <mvif expr="{fexists(tally_dbf)}">
+      <mvassign name="dummy"  value="{fdelete(tally_dbf)}">
+   </mvif>
+   <mvif expr="{fexists(tally_idx)}">
+      <mvassign name="dummy" value="{fdelete(tally_idx)}">
+   </mvif>
+
+   <mveval expr="{create_tally_db()}">
+
+   <mvlockfile file="{g.tally_dbf}">
+   <mvopen name     = "tally_db"
+           database = "{g.tally_dbf}"
+           indexes  = "{g.tally_idx}">
+
+   <mvlockfile file="{g.logentry_dbf}">
+   <mvopen name     = "logentry_db"
+           database = "{g.logentry_dbf}"
+           indexes  = "">
+   <mvwhile expr="{g.currec le logentry_db.d.totrec}">
+      <mvgo name="logentry_db" row="{g.currec}">
+      <mvif expr="{logentry_db.d.entrytype eq 'N'}">
+         <mvassign name="f_type" value="N">
+         <mvassign name="f_country" value="{logentry_db.d.country}">
+         <mvassign name="f_state" value="{logentry_db.d.state}">
+         <mvassign name="l.tally_text" value="{tally()}">
+         <mvassign name="logentry_db.d.tally" value="{l.tally_text}">
+         <mvupdate name="logentry_db">
+      </mvif>
+      <mvassign name="g.currec" value="{g.currec + 1}">
+   </mvwhile>
+   <mvclose name="logentry_db">
+   </mvlockfile>
+   <mvclose name="tally_db">
+   </mvlockfile>
+   <mveval expr="{log_admin()}">
+</mvfunction>

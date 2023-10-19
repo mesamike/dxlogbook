@@ -1,0 +1,17 @@
+<miva standardoutputlevel="">
+
+******************************************
+* Set base directory and master file names
+******************************************
+<mvassign name="basedir" value="dxlogbook">
+<mvassign name="accounts_dbf" value="{basedir $ '/accounts.dbf'}">
+<mvassign name="accounts_idx" value="{basedir $ '/accounts.idx'}">
+<mvassign name="passwdfile" value="{basedir $ '/passwd.dat'}">
+<mvassign name="sessionfile" value="{basedir $ '/session.dat'}">
+<mvassign name="configfile" value="{basedir $ '/config.dat'}">
+<mvassign name="iso3166_1_dat" value="{basedir $ '/iso3166_1.dat'}">
+<mvassign name="iso3166_1_dbf" value="{basedir $ '/iso3166_1.dbf'}">
+<mvassign name="iso3166_1_code2_idx" value="{basedir $ '/iso3166_1_code2.idx'}">
+<mvassign name="iso3166_1_code3_idx" value="{basedir $ '/iso3166_1_code3.idx'}">
+<mvassign name="iso3166_1_code_dx_idx" value="{basedir $ '/iso3166_1_code_dx.idx'}">
+

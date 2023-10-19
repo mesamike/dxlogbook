@@ -1,0 +1,13 @@
+<miva standardoutputlevel="">
+
+<MvOPEN NAME = "foo" 
+        DATABASE = "/dxlogbook/mikew/logs.dbf">
+
+<MvWHILE EXPR = "{ NOT foo.d.EOF }">
+    <MvEVAL EXPR = "{foo.d.log_order$'|'}">
+    <MvEVAL EXPR = "{foo.d.log_id$'|'}">
+    <MvEVAL EXPR = "{foo.d.logname$'<br>'}">
+    <MvSKIP NAME = "foo" ROWS = 1>
+</MvWHILE>
+
+<MvCLOSE NAME = "foo">

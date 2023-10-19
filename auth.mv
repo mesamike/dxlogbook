@@ -1,0 +1,430 @@
+<miva standardoutputlevel="">
+
+
+
+************************************************
+* Set variables common to all dx logbook scripts
+************************************************
+<mvdo file="common.mvc">
+
+*******************************************************************
+* If our base directory doesn't exist, we must not be installed yet.
+********************************************************************
+<mvif expr="{not fexists(basedir)}">
+   <miva standardoutputlevel="text,html">
+   <html><head><title>DX Logbook Not Installed</title></head>
+         <body><h1>DX Logbook Not Installed!</h1></body></html>
+   <miva standardoutputlevel="">
+   <mvexit>
+</mvif>
+
+<mvif expr="{account}">
+   <mvassign name="userdir" value="{basedir$'/'$account}">
+   <mvassign name="logs_dbf" value="{userdir$'/logs.dbf'}">
+   <mvassign name="logs_idx" value="{userdir$'/logs.idx'}">
+   <mvassign name="page_cfg" value="{userdir$'/page.cfg'}">
+   <mvassign name="info_txt" value="{userdir$'/info.txt'}">
+</mvif>
+
+*****************************
+* read the system config file
+*****************************
+<mvdo file="main.mvc" name="dummy" value="{read_config()}">
+
+<mvif expr="{request_method ne 'POST'}">
+   <mvassign name="mode" value="user">
+   <mvassign name="browse_state" value="mode, account, session_id">
+   <mveval expr="{put_passwd()}">
+<mvelse>
+   <mvif expr="{mode eq 'admin'}">
+      <mveval expr="{get_admin_passwd()}">
+   <mvelse>
+      <mveval expr="{get_user_passwd()}">
+   </mvif>
+</mvif>
+<mvexit>
+
+
+
+****************************************************
+* Send the password entry form to the user's browser
+****************************************************
+<mvfunction name="put_passwd" standardoutputlevel="">
+   <miva standardoutputlevel="text,html">
+         <html>
+            <head>
+               <mvif expr="{mode eq 'admin'}">
+                  <title>DX Logbook Administrator Login</title>
+               <mvelse>
+                  <title>DX Logbook Account Login</title>
+               </mvif>
+            <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+            </head>
+            <body bgcolor="#ffffaf" background="{bg_url}">
+               <center>
+                  <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+                  <hr>
+                  <blockquote>
+                  <mvif expr="{mode eq 'admin'}">
+                     <h1>DX Logbook Administrator Login</h1>
+                  <mvelse>
+                     <h1>DX Logbook Account Login</h1>
+                  </mvif>
+                  Please provide your Username and Password<br>
+                  <mvif expr="{passwd_error}">
+                     <p><font color="red">
+                     <mveval expr="{passwd_error}">
+                     </font>
+                  </mvif>
+                  <hr>
+                  <form action="auth.mvc" method="POST">
+                  <mvhide fields="{browse_state$',browse_state'}">
+                  <table>
+                     <tr>
+                        <th>Username:</th>
+                        <td><input name="pf_user" type="text"></td>
+                     </tr>
+                     <tr>
+                        <th>Password:</th>
+                        <td><input name="pf_passwd" type="password"></td>
+                     </tr>
+                  </table>
+                  <hr>
+                  <input type="submit" name="do_it" value="submit" >
+                  <input type="submit" name="do_it" value="cancel" >
+                  </form>
+               </blockquote></center>          
+               </body>
+            </html>
+   <miva standardoutputlevel="">
+   <mvexit>   ** Don't return to calling function!
+</mvfunction>
+
+
+<mvfunction name="get_admin_passwd" standardoutputlevel=""> 
+   ************************************************************
+   * we have username and password, make sure it's good!
+   ************************************************************
+   <mvif expr="{do_it eq 'cancel'}">
+      <mvdo file="main.mvc">
+      <mvexit>
+   </mvif>
+
+   <mvimport file="{passwdfile}"
+             fields = "username, cryptpasswd"
+             delimiter=":">
+   </mvimport>
+   <mvassign name="passwd_error" value="">
+
+   <mvif expr="{pf_user ne username}">
+      <mvassign name="passwd_error" value="Bad username or password">
+   </mvif>
+
+   <mvif expr="{cryptpasswd ne (pf_passwd crypt substring(cryptpasswd,1,2))}">
+      <mvassign name="passwd_error" value="Bad username or password">
+   </mvif>
+
+   <mvif expr="{passwd_error}"> 
+      <mveval expr="{put_passwd()}">
+   <mvelse>
+      ************************************************************
+      * Admin's username and password are good, set up his session
+      ************************************************************
+      <mvassign name="session_id" value="{makesessionid()}">
+      <mvassign name="expire_time" value="{time_t + 300}">
+      <mvif expr="{fexists(sessionfile)}">
+         <mvassign name="dummy" value="{fdelete(sessionfile)}">
+      </mvif>
+      <mvexport file="{sessionfile}" fields="session_id, expire_time" delimiter=":">
+   </mvif>   
+       
+   <mvif expr="{file}">
+      <mvdo file="{file}" name="dummy" value="{reentry()}">
+   <mvelse>
+      <mvdo file="admin.mvc">
+   </mvif>
+</mvfunction>
+
+
+
+<mvfunction name="get_user_passwd" standardoutputlevel="">
+   <mvif expr="{do_it eq 'cancel'}">
+         <mvassign name="browse_State" value="account,logbook,sortby">
+         <mvdo file="main.mvc">
+   <mvexit>
+   </mvif>
+
+
+   ******************************************
+   * Check user-submitted password entry form
+   ******************************************
+   <mvassign name="passwd_error" value="">
+   <mvlockfile file="{accounts_db}"> <mvlockfile file="{accounts_idx}">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+   <mvfind value="{pf_user}" exact="EXACT">
+   <mvif expr="{accounts_db.d.eof}">
+      <mvassign name="passwd_error" value="Bad username or password">
+   <mvelse><mvif expr="{accounts_db.d.passwd ne 
+                       (pf_passwd crypt substring(accounts_db.d.passwd,1,2))}">
+      <mvassign name="passwd_error" value="Bad username or password.">
+   </mvif></mvif>
+
+   <mvif expr="{not passwd_error}">
+   *************************************************************
+   * User's username and password checks out, set up his session
+   *************************************************************
+      <mvassign name="account" value="{pf_user}">
+      <mvassign name="session_id" value="{makesessionid()}">
+      <mvassign name="accounts_db.d.sessionid" value="{session_id}">
+      <mvassign name="accounts_db.d.expir_time" value="{time_t + 1800}">
+      <mvupdate name="accounts_db">       
+   </mvif>
+ 
+   <mvclose name="{accounts_db}">
+   </mvlockfile></mvlockfile>
+
+   <mvif expr="{passwd_error}">
+      <mveval expr="{put_passwd()}">
+   </mvif>
+
+
+   <mvif expr="{file}">
+      <mvdo file="{file}" name="dummy" value="{reentry()}">
+   <mvelse>
+      <mvdo file="main.mvc">
+   </mvif>
+
+</mvfunction>    
+
+
+
+
+
+<mvfunction name="verify_admin_login" standardoutputlevel="">
+   *************************************
+   * Check administrator's login session
+   *************************************
+   <mvimport file="{sessionfile}" 
+             fields="saved_session_id, expiry_time"
+             delimiter=":">
+   </mvimport>
+   <mvif expr="{not session_id}">
+      <mvassign name="passwd_error" value="">
+   <mvelse>
+      <mvif expr="{(session_id ne saved_session_id) or (time_t ge expiry_time)}">
+         <mvassign name="passwd_error" value="Your login has expired.">
+      <mvelse>
+          *******************************************************
+          * Administrator's session ID matches and hasn't expired
+          *******************************************************
+          <mvfuncreturn>
+       </mvif>
+   </mvif>
+   **********************************************
+   * If we get here, then the admin needs to login
+   **********************************************
+   <mveval expr="{put_passwd()}">
+</mvfunction>
+
+
+<mvfunction name="verify_user_login"  standardoutputlevel="">
+   ****************************
+   * Check user's login session
+   ****************************
+   <mvassign name="login_state" value="bad">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+      <mvfind value="{g.account}" exact="EXACT">
+      <mvif expr="{accounts_db.d.eof}">                                  // bad username
+         <mvassign name="g.session_id" value="">
+      <mvelse><mvif expr="{g.session_id ne accounts_db.d.sessionid}">
+            <mvassign name="g.session_id" value="">                           // bad session id
+      <mvelse><mvif expr="{time_t ge accounts_db.d.expir_time}">
+            <mvassign name="passwd_error" value="Your login has expired.">  // login expired
+      <mvelse>
+            <mvassign name="accounts_db.d.expir_time" value="{time_t + 1800}">
+            <mvassign name="login_state" value="ok">                        // login session still ok
+      </mvif></mvif></mvif>
+   <mvclose name="accounts_db">      
+   <mvif expr="{login_state eq 'ok'}">
+      <mvfuncreturn>
+   </mvif>    
+   **********************************************
+   * If we get here, then the user needs to login 
+   **********************************************
+   <mveval expr="{put_passwd()}">
+</mvfunction>
+
+<mvfunction name="get_acct_status" parameters="account" standardoutputlevel="">
+   <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+   <mvfind value="{account}" exact="EXACT">
+   <mvif expr="{accounts_db.d.eof}">
+      <mvassign name="l.retval" value="nonexist">
+   <mvelse>
+      <mvassign name="l.retval" value="{accounts_db.d.state}">
+   </mvif>
+   <mvclose name="accounts_db">
+   <mvfuncreturn value="{l.retval}">
+</mvfunction>
+
+
+
+*********************************
+* dispatch password change action
+*********************************
+<mvfunction name="new_passwd" standardoutputlevel="">
+   <mvif expr="{request_method eq 'POST'}">
+      <mveval expr="{get_new_passwd()}">
+   <mvelse>
+      <mveval expr="{put_new_passwd()}">
+   </mvif>
+</mvfunction>
+
+
+****************************************************
+* Send the password change form to the user's browser
+****************************************************
+<mvfunction name="put_new_passwd" standardoutputlevel="">
+   <miva standardoutputlevel="text,html">
+   <html>
+            <head>
+               <mvif expr="{mode eq 'admin'}">
+                  <title>Change DX Logbook Administrator's Password</title>
+               <mvelse>
+                  <title>Change DX Logbook Account Password</title>
+               </mvif>
+            </head>
+            <body bgcolor="#ffffaf" background="{bg_url}">
+               <center>
+                  <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
+                  <hr>
+                  <blockquote>
+                  <mvif expr="{mode eq 'admin'}">
+                     <h1>Change DX Logbook Administrator's Password</h1>
+                  <mvelse>
+                     <h1>Change DX Logbook Account Password</h1>
+                  </mvif>
+                  <mvif expr="{passwd_error}">
+                     <p><font color="red">
+                     <mveval expr="{passwd_error}">
+                     </font>
+                  </mvif>
+                  <hr>
+                  <form action="main.mvc" method="POST">
+                  <mvhide fields="action,mode,account,logbook,session_id">
+                  <table>
+                     <tr>
+                        <th>Username:</th>
+                        <td><input name="f_user" type="text"></td>
+                     </tr>
+                     <tr>
+                        <th>Old Password:</th>
+                        <td><input name="f_passwd" type="password"></td>
+                     <tr>
+                        <th>New Password:</th>
+                        <td><input name="f_newpasswd1" type="password"></td>
+                     </tr>
+                     <tr>
+                        <th>New Password Again:</th>
+                        <td><input name="f_newpasswd2" type="password"></td>
+                     </tr>
+                     </tr>
+                  </table>
+                  <hr>
+                  <input type="submit" name="do_it" value="submit" >
+                  <input type="submit" name="do_it" value="cancel" >
+                  </form>
+               </blockquote></center>          
+               </body>
+            </html>
+   <miva standardoutputlevel="">
+   <mvexit>   ** Don't return to calling function!
+</mvfunction>
+
+
+<mvfunction name="get_new_passwd" standardoutputlevel="">
+   <mvif expr="{do_it eq 'cancel'}">
+      <mvassign name="action" value="">
+      <mvif expr="{mode eq 'admin'}">
+         <mvdo file="admin.mvc">
+      <mvelse>
+         <mvdo file="main.mvc">
+      </mvif>
+      <mvexit>
+   </mvif>
+
+   <mvassign name="passwd_error" value="">
+   <mvif expr="{f_newpasswd1 ne f_newpasswd2}">
+      <mvassign name="passwd_error" value="New passwords didn't match">
+   </mvif>
+
+   **************************
+   * Change Admin's password
+   **************************
+   <mvif expr="{mode eq 'admin'}">
+         <mvimport file="{passwdfile}"
+                fields = "username, cryptpasswd"
+                delimiter=":">
+         </mvimport>
+
+         <mvif expr="{f_user ne username}">
+            <mvassign name="passwd_error" value="Bad username or password">
+         </mvif>
+
+         <mvif expr="{cryptpasswd ne (f_passwd crypt substring(cryptpasswd,1,2))}">
+            <mvassign name="passwd_error" value="Bad username or password">
+         </mvif>
+
+        <mvif expr="{passwd_error}"> 
+           <mveval expr="{put_new_passwd()}">
+        <mvelse>
+           *************************************************************
+           * Admin's username and password are good, change his password
+           *************************************************************
+           <mvassign name="dummy" value="{fdelete(passwdfile)}">
+           <mvassign name="cryptpasswd" value="{f_newpasswd1 crypt substring(f_newpasswd1,1,2)}">
+           <mvexport file = "{passwdfile}" 
+                     fields = "username, cryptpasswd" 
+                     delimiter = ":">
+        </mvif>
+
+   <mvelse>   
+      *************************
+      * Change account password
+      *************************
+      <mvlockfile file="{accounts_dbf}"> <mvlockfile file="{accounts_idx}">
+      <mvopen name="accounts_db" database="{accounts_dbf}" indexes="{accounts_idx}">
+      <mvfind value="{f_user}" exact="EXACT">
+      <mvif expr="{accounts_db.d.eof}">
+         <mvassign name="passwd_error" value="Bad username or password">
+      <mvelse><mvif expr="{accounts_db.d.passwd ne 
+                       (f_passwd crypt substring(accounts_db.d.passwd,1,2))}">
+         <mvassign name="passwd_error" value="bad username or password">
+      </mvif></mvif>
+
+      <mvif expr="{passwd_error}">
+         <mveval expr="{put_new_passwd()}">
+      <mvelse>
+      
+         *************************************************************
+         * Account username and password check out, change password
+         *************************************************************
+         <mvassign name="accounts_db.d.passwd" 
+                   value="{f_newpasswd1 crypt substring(f_user,1,2)}">
+         <mvupdate name="accounts_db">       
+      </mvif>
+ 
+      <mvclose name="accounts_db">
+      </mvlockfile></mvlockfile>
+   </mvif>
+   <mvif expr="{not passwd_error}"> 
+     <mvif expr="{mode eq 'admin'}">
+         <mvdo file="admin.mvc">
+      <mvelse>
+         <mvassign name="action" value="acctadmin">
+         <mvdo file="main.mvc">
+      </mvif>
+   </mvif>
+   <mvexit>   
+</mvfunction>    
+
+
