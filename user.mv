@@ -192,8 +192,7 @@
                <td>
                   <select name="f_type">
                      <option value="bcv2" selected>Broadcast DX Logbook (AM/FM/SW/TV)</option>
-                     <option value="bcdx">Broadcast DX Logbook (legacy format))</option>
-                     <option value="scan">Broadcast Bandscan/Station Listing</option>
+                     <option value="scv2">Broadcast Bandscan/Station Listing</option>
                   </select>
                </td>
             </tr>
