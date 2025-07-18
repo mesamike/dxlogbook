@@ -84,6 +84,7 @@
                         [<a href="{'main.mvc?action=deletelog&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_id}">delete</a>]
                         [<a href="{'main.mvc?action=reindexlog&account='$account$'&session_id='$session_id$'&logbook='$logs_db.d.log_id}">reindex</a>]
                      </td>
+                     <td>(type:<mveval expr="{logs_db.d.logtype}">)</td>
                      <td>
                         <li><b><mveval expr="{logs_db.d.logname}"></b> 
                         <mvif expr="{logs_db.d.subtitle}">
