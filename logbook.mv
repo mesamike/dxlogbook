@@ -42,6 +42,7 @@
    <mvassign name="g.logentry_freq_idx"  value="{g.logbase$'_freq.idx'}">
    <mvassign name="g.logentry_call_idx"  value="{g.logbase$'_call.idx'}">
    <mvassign name="g.logentry_qth_idx"   value="{g.logbase$'_qth.idx'}">
+   <mvassign name="g.logentry_date_idx"   value="{g.logbase$'_date.idx'}">
    <mvassign name="g.tally_dbf"       value="{g.logbase$'_tally.dbf'}">
    <mvassign name="g.tally_idx"  value="{g.logbase$'_tally.idx'}">
    <mvassign name="g.countries_db" value="{basedir$'/iso3166_1.dbf'}">
@@ -50,7 +51,7 @@
    <mvassign name="g.countries_idx" value="{g.code2idx$','$g.code3idx}">
 
    <mvassign name="g.all_idx" 
-             value="{g.logentry_freq_idx$','$g.logentry_call_idx$','$g.logentry_qth_idx}">
+             value="{g.logentry_freq_idx$','$g.logentry_call_idx$','$g.logentry_qth_idx$','$g.logentry_date_idx}">
 </mvfunction>
 
 
@@ -73,7 +74,7 @@
 
    **********************************************************
    * if the logbook doesn't exist, display account index page
-   **********************************************************
+   *******************************************************
    <mvif expr="{not fexists(logentry_dbf)}">
    <mveval expr="{logentry_dbf$' doesn\'t exist.'}">
       <mvassign name="logbook" value="">
@@ -107,7 +108,9 @@
       <mvassign name="idxfile" value="{g.logentry_freq_idx}">
    <mvelse><mvif expr="{sortby eq 'qth'}">
       <mvassign name="idxfile" value="{g.logentry_qth_idx}">
-   </mvif></mvif></mvif></mvif>
+   <mvelse><mvif expr="{(g.logver eq 'v2') and (sortby eq 'date')}">
+      <mvassign name="idxfile" value="{g.logentry_date_idx}">
+   </mvif></mvif></mvif></mvif></mvif>
 
    <mvopen name      = "countries_db"
            database = "{g.iso3166_1_dbf}"
@@ -161,9 +164,6 @@
 
       </head> 
       <body bgcolor="#ffffaf" background="{g.bg_url}">
-<div id="fb-root"></div>
-<script async defer src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v13.0"></script>
-
    <center>
    <mvdo file="main.mvc" name="dummy" value="{put_banner()}">
    <hr/>
@@ -210,10 +210,13 @@
    [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=freq&sortorder=A'}">Frequency</a>]
    [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=call&sortorder=A'}">Name/Call</a>]
    [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=qth&sortorder=A'}">Location</a>]
-   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'}">Most Recent</a>]
+   <mvif expr="{l.logtype eq 'ver2'}">
+      [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=date&sortorder=D'}">Date</a>]
+   <mvelse>
+      [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'}">Most Recent</a>]
+   </mvif>
    <p></p>
 
-   <table><tr><td>
    <table align="center">
    <mvwhile expr="{not logentry_db.d.eof}">
       <tr>
@@ -257,19 +260,7 @@
       </tr>
       <mvskip name="logentry_db" rows="{skipstep}">
    </mvwhile>
-   </table></td>
-   <td valign="top" >
-<!--  stupid Facebook comments widget doesn't work....
-      <div class="fb-comments"
-         data-href="{'http://mesamike.org/radio/dxlogbook/main.mvc?account='$account$'&logbook='$logbook}" 
-         data-width="200"
-         data-numposts="25"
-         data-order-by="reverse_time">
-      </div>
--->
-   </td>
-   </tr>
-</table>
+   </table>
 </center>
 
 </body></html>
@@ -296,6 +287,33 @@
    <mvassign name="browse_state" value="account,logbook,session_id,file,function,parameters">
    <mvdo file="auth.mvc" name="dummy" value="{verify_user_login()}">
 
+   # New logsbooks will be created in the new ver2 format #
+   <mvcreate name     = "logentry_db"
+             database = "{g.logentry_dbf}"
+             fields   = "freq        number(10.3),
+                         callsign    char(10),
+                         name        char(50),
+                         country     char(40),
+                         state       char(20),
+                         locality    char(40),
+                         datetime    char(20),
+                         entrytype   char(2),
+                         reason      char(40),
+                         comments    memo,
+                         pwr_u       number(7),
+                         pwr_d       number(7),
+                         pwr_n       number(7),
+                         pwr_c       number(7),
+                         pwr_which   number(1),   
+                         tally       char(30),
+                         receiver    char(10),
+                         antenna     char(10),
+                         qsl_rec     number(10),
+                         audiolink   char(80),
+                         audlnktype  char(2)">
+
+<mvcomment>
+   # This is the old ver1 format #
    <mvcreate name     = "logentry_db"
              database = "{g.logentry_dbf}"
              fields   = "freq        number(10.3),
@@ -312,6 +330,7 @@
                          qsl_rec     number(10),
                          audiolink   char(80),
                          audlnktype  char(2)">
+</mvcomment>
 
    <mvmakeindex name      = "logentry_db"
                 indexfile = "{g.logentry_call_idx}"
@@ -327,6 +346,11 @@
                 indexfile = "{g.logentry_qth_idx}"
                 expr      = "{logentry_db.d.country$'_'$logentry_db.d.state$'_'$logentry_db.d.locality}"
                 flags     = "ascending">
+
+   <mvmakeindex name      = "logentry_db"
+                indexfile = "{g.logentry_date_idx}"
+                expr      = "{logentry_db.d.datetime}"
+                flags     = "descending">
 
    <mvclose name = "logentry_db">
 </mvfunction>
@@ -391,6 +415,7 @@
    <mvlockfile file="{g.logentry_freq_idx}">
    <mvlockfile file="{g.logentry_call_idx}">
    <mvlockfile file="{g.logentry_qth_idx}">
+   <mvlockfile file="{g.logentry_date_idx}">
 
 
    <mvassign name="dummy" value="{fdelete(g.logentry_dbf)}">
@@ -398,8 +423,10 @@
    <mvassign name="dummy" value="{fdelete(g.logentry_freq_idx)}">
    <mvassign name="dummy" value="{fdelete(g.logentry_call_idx)}">
    <mvassign name="dummy" value="{fdelete(g.logentry_qth_idx)}">
+   <mvassign name="dummy" value="{fdelete(g.logentry_date_idx)}">
 
 
+   </mvlockfile>
    </mvlockfile>
    </mvlockfile>
    </mvlockfile>
@@ -1157,6 +1184,7 @@ Put the log entry values into the database
                            <mveval expr="{'<option value="freq" '$l.freq_selected$'>'}">Sort by Frequency</option>
                            <mveval expr="{'<option value="call" '$l.call_selected$'>'}">Sort by Call/Name</option>
                            <mveval expr="{'<option value="qth" '$l.qth_selected$'>'}">Sort by Location</option>
+                           <mveval expr="{'<option value="date" '$l.date_selected$'>'}">Sort by Date</option>
                            <mveval expr="{'<option value="entry" '$l.entry_selected$'>'}">Sort by Order of Entry</option>
                         </select>
                         <select name="f_sortorder" >
@@ -1207,7 +1235,7 @@ Put the log entry values into the database
             <mvassign name="logs_db.d.blurb" value="{f_comments}">
             <mvassign name="logs_db.d.sortby" value="{f_sortby}">
             <mvassign name="logs_db.d.sortorder" value="{f_sortorder}">
-            <mvif expr="{logs_db.d.logtype eq 'bcdx'}">
+            <mvif expr="{(logs_db.d.logtype eq 'bcdx') or (logs_db.d.logtype eq 'bcv2')}">
                <mvassign name="logs_db.d.tally" value="{f_tally}">
             </mvif>
             <mvupdate name="logs_db">
@@ -1241,7 +1269,12 @@ Put the log entry values into the database
          <mvassign name="g.cfg_sortby" value="{logs_db.d.sortby}">
          <mvassign name="g.cfg_sortorder" value="{logs_db.d.sortorder}">
          <mvassign name="g.logtype" value="{logs_db.d.logtype}">
-         <mvif expr="{g.logtype eq 'bcdx'}">
+         <mvif expr="{substring(g.logtype, 3, 2) eq 'v2'}">
+            <mvassign name="g.logver" value="v2"> 
+         <mvelse>
+            <mvassign name="g.logver" value="v1"> 
+         </mvif>
+         <mvif expr="{substring(g.logtype, 1, 2)  eq 'bc'}">
             <mvassign name="g.tally" value="{logs_db.d.tally}">
          </mvif>
       <mvelse> * Logbook doesn't exist, fall back to account config
