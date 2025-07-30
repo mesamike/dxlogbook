@@ -78,7 +78,8 @@
                   </mvif>
                   <hr>
                   <form action="auth.mvc" method="POST">
-                  <mvhide fields="{browse_state$',browse_state'}">
+<mvcomment> <mvhide fields="{browse_state$',browse_state'}"> </mvcomment>
+                  <mvhide fields="{browse_state}">
                   <table>
                      <tr>
                         <th>Username:</th>
@@ -149,7 +150,7 @@
 
 <mvfunction name="get_user_passwd" standardoutputlevel="">
    <mvif expr="{do_it eq 'cancel'}">
-         <mvassign name="browse_State" value="account,logbook,sortby">
+         <mvassign name="browse_State" value="account, logbook, sortby">
          <mvdo file="main.mvc">
    <mvexit>
    </mvif>

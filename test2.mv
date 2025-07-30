@@ -1,7 +1,8 @@
-<MvOPEN NAME = "amstations" DATABASE = "dxlogbook/mikew/logs.dbf">
-<MvREVEALSTRUCTURE NAME = "amstations" DATABASE = "test/struct.dbf">
+<mvassign name="dbfile" value = "dxlogbook/accounts.dbf">
+<MvOPEN NAME = "dbname" DATABASE = "{dbfile}">
+<MvREVEALSTRUCTURE NAME = "dbname" DATABASE = "struct.dbf">
 
-<MvOPEN NAME = "struct" DATABASE = "test/struct.dbf">
+<MvOPEN NAME = "struct" DATABASE = "struct.dbf">
 <MvWHILE EXPR = "{ NOT struct.d.EOF }">
     <MvEVAL EXPR = "{ struct.d.field_name }">, 
     <MvEVAL EXPR = "{ struct.d.field_type }">, 
@@ -11,4 +12,4 @@
 </MvWHILE>
 
 <MvCLOSE NAME = "struct">
-<MvCLOSE NAME = "amstations">
+<MvCLOSE NAME = "dbname">
