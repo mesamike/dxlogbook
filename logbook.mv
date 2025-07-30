@@ -454,7 +454,7 @@
                          audlnktype  char(2)">
 </mvcomment>
 
-<mvif expr="{not g.logver eq 'v2'}" 
+<mvif expr="{not g.logver eq 'v2'}"> 
    <mvmakeindex name      = "logentry_db"
                 indexfile = "{g.logentry_call_idx}"
                 expr      = "{logentry_db.d.station}"
