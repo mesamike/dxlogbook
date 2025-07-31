@@ -427,7 +427,7 @@
                          pwr_which   char(2),   
                          distance    number(8),
                          distunits   char(2),
-                         tally       char(30),
+                         tally       char(50),
                          receiver    char(40),
                          antenna     char(40),
                          qsl_rec     number(10),
