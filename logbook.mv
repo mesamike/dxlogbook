@@ -431,8 +431,8 @@
                          receiver    char(40),
                          antenna     char(40),
                          qsl_rec     number(10),
-                         audiolink   char(256),
-                         videolink   char(256)">
+                         audiolink   char(254),
+                         videolink   char(254)">
 
 <mvcomment>
    # This is the old ver1 format #
