@@ -431,8 +431,8 @@
                          receiver    char(40),
                          antenna     char(40),
                          qsl_rec     number(10),
-                         audiolink   char(80),
-                         videolink   char(80)">
+                         audiolink   char(256),
+                         videolink   char(256)">
 
 <mvcomment>
    # This is the old ver1 format #
@@ -815,11 +815,11 @@
             </tr>
             <tr>
                <td align="right"><b>Audio Clip URL:</b></td>
-               <td><input type="text" size="60" name="f_audlnk" value="{l.audiolink}"></td>
+               <td><input type="text" size="80" name="f_audlnk" value="{l.audiolink}"></td>
             </tr>
             <tr>
                <td align="right"><b>Video Clip URL:</b></td>
-               <td><input type="text" size="60" name="f_vidlnk" value="{l.videolink}"></td>
+               <td><input type="text" size="80" name="f_vidlnk" value="{l.videolink}"></td>
             </tr>
 </mvif> 
          </mvif>
