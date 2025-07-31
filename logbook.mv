@@ -1450,7 +1450,7 @@ Build list of logbook options for entry copy select used above
                      <th>Subtitle:</th>
                      <td><input type="text" name="f_subtitle" value="{g.subtitle}" size="100"></td>
                   </tr>
-                  <mvif expr="{g.logtype eq 'bcdx'}">
+                  <mvif expr="{substring(g.logtype,1,2) eq 'bc'}">
                   <tr>
                     <th>Automatic Tally:</th>
                     <td>

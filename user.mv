@@ -204,7 +204,7 @@
                      <option value="freq">Sort by Frequency</option>
                      <option value="call">Sort by Call/Name</option>
                      <option value="qth">Sort by Location</option>
-                     <option value="entry" selected>Sort by Order of Entry</option>
+                     <option value="date" selected>Sort by date</option>
                   </select>
                   <select name="f_sortorder" >
                      <option value="A">Ascending</option>
