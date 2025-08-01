@@ -88,6 +88,8 @@
       </mvif>
 
       <mvassign name="l.pwrslash" value="">
+      <mvassign name="l.pwrodash" value="">
+
       <mvif expr="{logentry_db.d.pwr_which eq 'D'}">
          <mvassign name="l.dbold_on" value="<b><u>" >
          <mvassign name="l.dbold_off" value="</u></b>" >
@@ -149,6 +151,7 @@
       <mvelse>
          <mvassign name="l.ounits" value="W">
       </mvif>
+      <mvassign name="l.pwro_desc" value="{logentry_db.d.pwr_o_desc}">
 </mvif>
       <miva standardoutputlevel="text,html">
          <td valign="top" align="right">
@@ -191,7 +194,25 @@
             <mvif expr="{not logentry_db.d.videolink eq ''}">
                [<mveval expr="{'<a href="'$logentry_db.d.videolink$'">'}">video clip</a>]
             </mvif>
-            <mvif expr="{l.pwrd}"><mveval expr="{l.dbold_on$l.pwrd$l.dunits$'-D'$l.dbold_off}"><mvassign name="l.pwrslash" value="/"></mvif><mvif expr="{l.pwrn}"><mveval expr="{l.pwrslash$l.nbold_on$l.pwrn$l.nunits$'-N'$l.nbold_off}"><mvassign name="l.pwrslash" value="/"></mvif><mvif expr="{l.pwrc}"><mveval expr="{l.pwrslash$l.cbold_on$l.pwrc$l.cunits$'-CH'$l.cbold_off}"></mvif><mvassign name="l.pwrslash" value="/"><mvif expr="{l.pwro}"><mveval expr="{l.pwrslash$l.obold_on$l.pwro$l.ounits$'-other'$l.obold_off}"></mvif>,
+
+            <mvif expr="{l.pwrd}">
+              <mveval expr="{l.dbold_on$l.pwrd$l.dunits$'-D'$l.dbold_off}">
+              <mvassign name="l.pwrslash" value="/">
+           </mvif>
+           <mvif expr="{l.pwrn}">
+              <mveval expr="{l.pwrslash$l.nbold_on$l.pwrn$l.nunits$'-N'$l.nbold_off}">
+              <mvassign name="l.pwrslash" value="/">
+           </mvif>
+           <mvif expr="{l.pwrc}">
+              <mveval expr="{l.pwrslash$l.cbold_on$l.pwrc$l.cunits$'-CH'$l.cbold_off}">
+              <mvassign name="l.pwrslash" value="/">
+           </mvif>
+           <mvif expr="{l.pwro}">
+              <mvif expr="{l.pwro_desc}">
+                 <mvassign name="l.pwrodash" value="-">
+              </mvif>
+             <mveval expr="{l.pwrslash$l.obold_on$l.pwro$l.ounits$l.pwrodash$l.pwro_desc$l.obold_off}">
+           </mvif>,
 </mvif>
 
             <mveval expr="{logentry_db.d.distance$' '$l.distunits$' ('$logentry_db.d.receiver$'/'$logentry_db.d.antenna$') '}">
@@ -424,6 +445,7 @@
                          pwr_n       number(8),
                          pwr_c       number(8),
                          pwr_o       number(8),
+                         pwr_o_desc  char(10),   
                          pwr_which   char(2),   
                          distance    number(8),
                          distunits   char(2),
@@ -642,6 +664,7 @@
          <mvassign name="l.pwrn"      value="{logentry_db.d.pwr_n}">
          <mvassign name="l.pwrc"      value="{logentry_db.d.pwr_c}">
          <mvassign name="l.pwro"      value="{logentry_db.d.pwr_o}">
+         <mvassign name="l.pwro_desc" value="{logentry_db.d.pwr_o_desc}">
          <mvassign name="l.pwr_which" value="{logentry_db.d.pwr_which}">
          <mvassign name="l.v2date"    value="{substring(logentry_db.d.datetime, 1, 10)}">
          <mvassign name="l.v2time"    value="{substring(logentry_db.d.datetime, 12, 2)$substring(logentry_db.d.datetime, 15,2)}">
@@ -784,7 +807,9 @@
                         <td><mveval expr="{'<input type="radio" name="f_pwr_which" value="D" '$pdchecked$'>'$'Day'}"></td>
                         <td><mveval expr="{'<input type="radio" name="f_pwr_which" value="N" '$pnchecked$'>'$'Night'}"></td>
                         <td><mveval expr="{'<input type="radio" name="f_pwr_which" value="C" '$pcchecked$'>'$'Critical Hours'}"></td>
-                        <td><mveval expr="{'<input type="radio" name="f_pwr_which" value="O" '$pochecked$'>'$'Other'}"></td>
+                        <td><mveval expr="{'<input type="radio" name="f_pwr_which" value="O" '$pochecked$'>'$'Other'}">
+                            <mveval expr="{'<b>Other Type:</b><input type="text" name="f_pwrodesc" value="'$l.pwro_desc$'" size="10">'}"> 
+                        </td>
                      </tr>
                   </table>
                </td>  
@@ -959,6 +984,7 @@ Build list of logbook options for entry copy select used above
    <mvassign name="logentry_db.d.pwr_n"     value="{f_pwrn}">
    <mvassign name="logentry_db.d.pwr_c"     value="{f_pwrc}">
    <mvassign name="logentry_db.d.pwr_o"     value="{f_pwro}">
+   <mvassign name="logentry_db.d.pwr_o_desc" value="{f_pwrodesc}">
    <mvassign name="logentry_db.d.pwr_which" value="{f_pwr_which}">
    <mvassign name="logentry_db.d.receiver"  value="{f_rcvr}">
    <mvassign name="logentry_db.d.antenna"   value="{f_ant}">
