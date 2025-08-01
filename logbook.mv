@@ -195,24 +195,7 @@
                [<mveval expr="{'<a href="'$logentry_db.d.videolink$'">'}">video clip</a>]
             </mvif>
 
-            <mvif expr="{l.pwrd}">
-              <mveval expr="{l.dbold_on$l.pwrd$l.dunits$'-D'$l.dbold_off}">
-              <mvassign name="l.pwrslash" value="/">
-           </mvif>
-           <mvif expr="{l.pwrn}">
-              <mveval expr="{l.pwrslash$l.nbold_on$l.pwrn$l.nunits$'-N'$l.nbold_off}">
-              <mvassign name="l.pwrslash" value="/">
-           </mvif>
-           <mvif expr="{l.pwrc}">
-              <mveval expr="{l.pwrslash$l.cbold_on$l.pwrc$l.cunits$'-CH'$l.cbold_off}">
-              <mvassign name="l.pwrslash" value="/">
-           </mvif>
-           <mvif expr="{l.pwro}">
-              <mvif expr="{l.pwro_desc}">
-                 <mvassign name="l.pwrodash" value="-">
-              </mvif>
-             <mveval expr="{l.pwrslash$l.obold_on$l.pwro$l.ounits$l.pwrodash$l.pwro_desc$l.obold_off}">
-           </mvif>,
+            <mvif expr="{l.pwrd}"><mveval expr="{l.dbold_on$l.pwrd$l.dunits$'-D'$l.dbold_off}"><mvassign name="l.pwrslash" value="/"></mvif><mvif expr="{l.pwrn}"><mveval expr="{l.pwrslash$l.nbold_on$l.pwrn$l.nunits$'-N'$l.nbold_off}"><mvassign name="l.pwrslash" value="/"></mvif><mvif expr="{l.pwrc}"> <mveval expr="{l.pwrslash$l.cbold_on$l.pwrc$l.cunits$'-CH'$l.cbold_off}"><mvassign name="l.pwrslash" value="/"></mvif><mvif expr="{l.pwro}"><mvif expr="{l.pwro_desc}"><mvassign name="l.pwrodash" value="-"></mvif><mveval expr="{l.pwrslash$l.obold_on$l.pwro$l.ounits$l.pwrodash$l.pwro_desc$l.obold_off}"></mvif>,
 </mvif>
 
             <mveval expr="{logentry_db.d.distance$' '$l.distunits$' ('$logentry_db.d.receiver$'/'$logentry_db.d.antenna$') '}">
