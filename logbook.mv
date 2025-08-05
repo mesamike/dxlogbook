@@ -341,7 +341,6 @@
       <h3><mveval expr="{g.subtitle}"></h3>
    </mvif>
 </center><mveval expr="{g.blurb}"><br/>
-   <hr/>
 
    <mvif expr="{g.tally}">
       <hr/><div align="left">
