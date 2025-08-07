@@ -205,6 +205,7 @@
                      <option value="call">Sort by Call/Name</option>
                      <option value="qth">Sort by Location</option>
                      <option value="date" selected>Sort by date</option>
+                     <option value="entry">Sort by order of entry</option>
                   </select>
                   <select name="f_sortorder" >
                      <option value="A">Ascending</option>

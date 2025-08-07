@@ -371,9 +371,8 @@
    [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=qth&sortorder=A'}">Location</a>]
    <mvif expr="{g.logver eq 'v2'}">
       [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=date&sortorder=D'}">Date</a>]
-   <mvelse>
-      [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'}">Most Recent</a>]
-   </mvif>
+   </mvif>   
+   [<a href="{'main.mvc?account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'}">Most Recent</a>]
    <p/>
 
    <table align="center">
