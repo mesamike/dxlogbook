@@ -1325,9 +1325,8 @@ Build list of logbook options for entry copy select used above
    [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=qth&sortorder=A'$'&session_id='$session_id}">Location</a>]
 <mvif expr="{g.logver eq 'v2'}">
    [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=date&sortorder=D'$'&session_id='$session_id}">Date</a>]
-<mvelse>
-   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'$'&session_id='$session_id}">Most Recent</a>]
 </mvif>
+   [<a href="{'main.mvc?action=logadmin&account='$account$'&logbook='$logbook$'&sortby=entry&sortorder=D'$'&session_id='$session_id}">Most Recent</a>]
    <hr>
    <blockquote>
    <table align="center">
