@@ -179,7 +179,7 @@
          <td valign="top"><b><mveval expr="{logentry_db.d.locality}"></b> -
 <mvif expr="{g.logver eq 'v2'}">
             <mvif expr="{not logentry_db.d.name eq ''}">
-               <mveval expr="{'<i>'$logentry_db.d.name$',</i> '}">
+               <mveval expr="{'<b><i>'$logentry_db.d.name$',</i></b> '}">
             </mvif>
             <mveval expr="{datetime2readable(logentry_db.d.datetime)$' - '}">
 <mvelse>
@@ -438,7 +438,7 @@
                          videolink   char(254)">
 
 <mvcomment>
-   # This is the old ver1 format #
+   # This is the old version 1 format #
    <mvcreate name     = "logentry_db"
              database = "{g.logentry_dbf}"
              fields   = "freq        number(10.3),
